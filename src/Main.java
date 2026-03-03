@@ -8,7 +8,7 @@ public class Main {
         // config.setArrivalLambda(0.5);
         // config.setRandomSeed(12345);
 
-        double simulationEndTime = 120.0; // e.g., 120 minutes
+        double simulationEndTime = 30;
         SimulationEngine engine = new SimulationEngine(simulationEndTime, config);
 
         engine.setDebugMode(true);

@@ -30,6 +30,11 @@ public class SimulationEngine {
 
     private boolean debugMode;
 
+    private double timeScale; // used for time scaling for sleep
+    private long maxSleep = 10000;
+    private long realStartTime;
+    private double simStartTime;
+
     public SimulationEngine(double simulationEndTime, Configuration config) {
         this.eventList = new EventList();
         this.simulationEndTime = simulationEndTime;
@@ -61,6 +66,10 @@ public class SimulationEngine {
     public void setDebugMode(boolean debugMode_answer) {
         this.debugMode = debugMode_answer;
     }
+
+    public double getTimeScale() { return timeScale; } // getter and setter defined for timeScale in run() for realistic thread sleep
+    public void setTimeScale(double timeScale) {this.timeScale = timeScale;}
+    private long getMaxSleep() {return maxSleep;}
 
     // ---------- Formatting Helpers ----------
     private String f3(double v) {
@@ -131,26 +140,11 @@ public class SimulationEngine {
         double L = getAverageNumberInSystem();
 
         System.out.println("========== SYSTEM STATISTICS ==========");
-        System.out.printf("%-28s %d%n", "Total Completed:", totalPassengersCompleted);
+        System.out.printf("%-28s %d%n", "Total Completed (Passengers):", totalPassengersCompleted);
         System.out.printf("%-28s %s%n", "Throughput (X):", f3(X));
         System.out.printf("%-28s %s%n", "Average Journey Time (R):", f2(R));
         System.out.printf("%-28s %s%n", "Average Number In System (L):", f2(L));
         System.out.println("=======================================\n");
-
-        /*
-
-        double X = getSystemThroughput();
-        double R = getAverageSystemTime();
-        double L = getAverageNumberInSystem();
-
-        System.out.println("===== SYSTEM STATISTICS =====");
-        System.out.println("Total Completed: " + totalPassengersCompleted);
-        System.out.printf("Throughput (X): " + X, f3(X));
-        System.out.printf("Average Journey Time (R): " + R, f2(R));
-        System.out.printf("Average Number In System (L): " + L, f2(L));
-        System.out.printf("=============================");
-
-         */
     }
 
 
@@ -205,28 +199,6 @@ public class SimulationEngine {
         cumulativeSystemTime += journeyTime;
     }
 
-    /*
-
-    private void checkAndAdjustServicePoint(ServicePoint sp, double simulationTime) {
-        double utilization = sp.getUtilization(simulationTime);
-        double avgQueue = sp.getLiveAverageQueueLength();
-
-        final double BOTTLENECK_UTIL = 0.95;
-        final double BOTTLENECK_QUEUE = 50;
-        final double ADJUST_FACTOR = 0.9;
-
-        if (utilization > BOTTLENECK_UTIL || avgQueue > BOTTLENECK_QUEUE) {
-            sp.adjustServiceTime(ADJUST_FACTOR);
-            if (debugMode) {
-                System.out.printf("[ADJUST] %s bottlenecked: scale service by %.2f%n",
-                        sp.getServicePointName(), ADJUST_FACTOR);
-            }
-        } else {
-            sp.adjustServiceTime(1.0); // Reset to original mean/stdDev
-        }
-    }
-
-     */
 
     private void checkAndAdjustServicePoint(ServicePoint sp, double simulationTime) {
         double utilization = sp.getUtilization(simulationTime);
@@ -277,19 +249,67 @@ public class SimulationEngine {
         sp.setLastAdjustmentTime(simulationTime);
     }
 
+    public synchronized void changeSpeed(double newTimeScale) {
+
+        if (newTimeScale <= 0) { throw new IllegalArgumentException("Time scale must be positive.");}
+
+        long nowReal = System.currentTimeMillis();
+        double nowSim = Clock.getInstance().getTime();
+
+        // Re-anchor using existing variables
+        realStartTime = nowReal;
+        simStartTime = nowSim;
+
+        timeScale = newTimeScale;
+    }
+
+    public void setSpeedMultiplier(double multiplier) {
+
+        if (multiplier <= 0) {
+            throw new IllegalArgumentException("Multiplier must be positive.");
+        }
+
+        double newTimeScale = 1000.0 / multiplier;
+        changeSpeed(newTimeScale);
+    }
+
+
+
     // Main simulation loop
     public void run() {
+
+        realStartTime = System.currentTimeMillis();
+        simStartTime = Clock.getInstance().getTime();
+
         running = true;
+        setTimeScale(1000);
 
         // Loop until no events remain or simulation time ends
         while (running && !eventList.isEmpty()) {
 
             Event event = eventList.getNextEvent(); // Get next scheduled event
+            double simTime = event.getEventTime();
+            Clock.getInstance().setTime(simTime);
 
-            // Advance the global clock to this event's time
-            Clock.getInstance().setTime(event.getEventTime());
+            // double currentEventTime = event.getEventTime();
+            // double delta = Math.max(0, currentEventTime - previousTime);
+            // Clock.getInstance().setTime(event.getEventTime());
+
+            long desiredWallTime = (realStartTime + (long)((simTime - simStartTime) * getTimeScale()));
+            long now = System.currentTimeMillis();
+            long sleepTime = desiredWallTime - now;
+
+            if (sleepTime > 0) {
+                sleepTime = Math.min(sleepTime, maxSleep);  // ← sleep cap here
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
 
             if (debugMode) {
+
                 Passenger p = event.getPassenger();
                 if (p != null) {
                     System.out.printf(
@@ -313,6 +333,8 @@ public class SimulationEngine {
             for (ServicePoint sp : grouping) {
                 checkAndAdjustServicePoint(sp, Clock.getInstance().getTime()); // dynamically adjust service times
             }
+
+
         }
 
         running = false;
