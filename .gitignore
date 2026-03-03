@@ -1,4 +1,10 @@
 ### IntelliJ IDEA ###
+
+echo ".idea/" >> .gitignore
+git rm -r --cached .idea
+git add .gitignore
+
+
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
