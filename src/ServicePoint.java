@@ -34,6 +34,27 @@ public abstract class ServicePoint {
     private double currentFactor = 1.0;
     private double lastAdjustmentTime = 0.0;
 
+    private double baseServiceMean;
+    private double currentServiceMean;
+
+    public static final String NORMAL_CHECKIN = "Normal Check-in";
+    public static final String SELF_CHECKIN = "Self Check-in";
+    public static final String REGULAR_SECURITY = "Regular Security";
+    public static final String FASTTRACK_SECURITY = "Fast Track Security";
+    public static final String CUSTOMS = "Customs";
+    public static final String BOARDING = "Boarding";
+
+    /*
+    How the Service Point Strings are:
+
+        this.normalCheckin = new NormalCheckin(this, "Normal Check-in");
+        this.selfCheckin = new SelfCheckin(this, "Self Check-in");
+        this.regularSecurity = new RegularSecurity(this, "Regular Security");
+        this.fastTrackSecurity = new FastTrackSecurity(this, "Fast Track Security");
+        this.customs = new Customs(this, "Customs");
+        this.boarding = new Boarding(this, "Boarding");
+     */
+
 
     protected ContinuousGenerator serviceGenerator;
 
@@ -54,6 +75,22 @@ public abstract class ServicePoint {
         this.lastQueueLengthUpdateTime = 0;
         this.maxQueueLength = 0;
 
+        this.baseServiceMean = engine.getConfiguration().getServiceMeanFor(servicePointName);
+        this.currentServiceMean = baseServiceMean;
+
+    }
+
+    public void updateBaseServiceMean(double newBaseMean) {
+        this.baseServiceMean = newBaseMean;
+
+        // Reset runtime mean to new base
+        this.currentServiceMean = newBaseMean;
+
+        // Recreate generator if needed
+
+        if (serviceGenerator instanceof Normal normal) {
+            normal.setMean(newBaseMean);
+        }
     }
 
     public void adjustServiceTime(double factor) {

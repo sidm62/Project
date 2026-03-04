@@ -39,6 +39,10 @@ public class Normal extends Generator implements ContinuousGenerator {
 	this.std_dev = Math.sqrt(variance);
     }
 
+    public void setMean(double mean) {
+        this.mean = mean;
+    }
+
     /**
      * Generate a new random number.
      * @return The next random number in the sequence

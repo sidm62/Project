@@ -1,3 +1,6 @@
+import java.util.HashMap;
+import java.util.Map;
+
 public class Configuration {
 
     // =========================
@@ -98,6 +101,7 @@ public class Configuration {
 
     public String getArrivalDistributionType() { return arrivalDistributionType; }
     public double getArrivalLambda() { return arrivalMean; }
+    public void setArrivalLambda(double provided_mean) { arrivalMean = provided_mean; }
 
     public long getRandomSeed() { return randomSeed; }
     public double getNormalCheckinMean() { return normalCheckinMean; }
@@ -145,5 +149,136 @@ public class Configuration {
     public double getEconomySelfCheckinProb() { return economySelfCheckinProb; }
     public double getBusinessSelfCheckinProb() { return businessSelfCheckinProb; }
     public double getFirstSelfCheckinProb() { return firstSelfCheckinProb; }
+
+    private final Map<Scenario, Map<String, Double>> scenarioServiceMeans = new HashMap<>();
+    public Map<Scenario, Map<String, Double>> getScenarioServiceMeans() { return scenarioServiceMeans; }
+
+    public Configuration() {
+
+        // Base servie times
+
+        /*
+        private double normalCheckinMean = 4.0;
+        private double selfCheckinMean = 2.5;
+        private double regularSecurityMean = 3.5;
+        private double fasttrackSecurityMean = 2.0;
+        private double customsMean = 5.0;
+        private double boardingMean = 2.5;
+         */
+
+
+
+        // Initialize default service means per scenario
+        Map<String, Double> normalMeans = Map.of(
+                ServicePoint.NORMAL_CHECKIN, 4.0,
+                ServicePoint.SELF_CHECKIN, 2.5,
+                ServicePoint.REGULAR_SECURITY, 3.5,
+                ServicePoint.FASTTRACK_SECURITY, 2.0,
+                ServicePoint.CUSTOMS, 5.0,
+                ServicePoint.BOARDING, 2.5
+        );
+
+        Map<String, Double> peakMeans = Map.of(
+                ServicePoint.NORMAL_CHECKIN, 5.0,
+                ServicePoint.SELF_CHECKIN, 3.0,
+                ServicePoint.REGULAR_SECURITY, 4.5,
+                ServicePoint.FASTTRACK_SECURITY, 2.5,
+                ServicePoint.CUSTOMS, 6.0,
+                ServicePoint.BOARDING, 3.0
+        );
+
+        Map<String, Double> lowTrafficMeans = Map.of(
+                ServicePoint.NORMAL_CHECKIN, 3.0,
+                ServicePoint.SELF_CHECKIN, 2.0,
+                ServicePoint.REGULAR_SECURITY, 2.5,
+                ServicePoint.FASTTRACK_SECURITY, 1.5,
+                ServicePoint.CUSTOMS, 4.0,
+                ServicePoint.BOARDING, 2.0
+        );
+
+        Map<String, Double> systemStressMeans = Map.of(
+                ServicePoint.NORMAL_CHECKIN, 8.0,
+                ServicePoint.SELF_CHECKIN, 5.0,
+                ServicePoint.REGULAR_SECURITY, 6.0,
+                ServicePoint.FASTTRACK_SECURITY, 4.0,
+                ServicePoint.CUSTOMS, 10.0,
+                ServicePoint.BOARDING, 5.0
+        );
+
+        Map<String, Double> recoveryMeans = Map.of(
+                ServicePoint.NORMAL_CHECKIN, 2.5,
+                ServicePoint.SELF_CHECKIN, 1.5,
+                ServicePoint.REGULAR_SECURITY, 2.0,
+                ServicePoint.FASTTRACK_SECURITY, 1.2,
+                ServicePoint.CUSTOMS, 3.0,
+                ServicePoint.BOARDING, 1.8
+        );
+
+        // Map scenarios to their service means
+        scenarioServiceMeans.put(Scenario.NORMAL, normalMeans);
+        scenarioServiceMeans.put(Scenario.PEAK_TIME, peakMeans);
+        scenarioServiceMeans.put(Scenario.LOW_TRAFFIC, lowTrafficMeans);
+        scenarioServiceMeans.put(Scenario.SYSTEM_STRESS, systemStressMeans);
+        scenarioServiceMeans.put(Scenario.RECOVERY_MODE, recoveryMeans);
+    }
+
+
+    public double getServiceMeanFor(String servicePointName) {
+
+        switch (servicePointName) {
+
+            case ServicePoint.NORMAL_CHECKIN:
+                return normalCheckinMean;
+
+            case ServicePoint.SELF_CHECKIN:
+                return selfCheckinMean;
+
+            case ServicePoint.REGULAR_SECURITY:
+                return regularSecurityMean;
+
+            case ServicePoint.FASTTRACK_SECURITY:
+                return fasttrackSecurityMean;
+
+            case ServicePoint.CUSTOMS:
+                return customsMean;
+
+            case ServicePoint.BOARDING:
+                return boardingMean;
+
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown service point: " + servicePointName
+                );
+        }
+    }
+
+    public void setServiceMeanFor(String servicePointName, double mean) {
+        switch (servicePointName) {
+            case ServicePoint.NORMAL_CHECKIN:
+                normalCheckinMean = mean;
+                break;
+            case ServicePoint.SELF_CHECKIN:
+                selfCheckinMean = mean;
+                break;
+            case ServicePoint.REGULAR_SECURITY:
+                regularSecurityMean = mean;
+                break;
+            case ServicePoint.FASTTRACK_SECURITY:
+                fasttrackSecurityMean = mean;
+                break;
+            case ServicePoint.CUSTOMS:
+                customsMean = mean;
+                break;
+            case ServicePoint.BOARDING:
+                boardingMean = mean;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown service point: " + servicePointName);
+        }
+    }
+
+
+
+
 
 }

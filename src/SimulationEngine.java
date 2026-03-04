@@ -2,6 +2,7 @@ import distributions.*;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class SimulationEngine {
 
@@ -31,9 +32,14 @@ public class SimulationEngine {
     private boolean debugMode;
 
     private double timeScale; // used for time scaling for sleep
+    private double speedMultiplier;
     private long maxSleep = 10000;
     private long realStartTime;
     private double simStartTime;
+
+    private double baseArrivalLambda;
+    private double currentArrivalLambda;
+
 
     public SimulationEngine(double simulationEndTime, Configuration config) {
         this.eventList = new EventList();
@@ -58,6 +64,7 @@ public class SimulationEngine {
         this.allPassengers = new ArrayList<>();
 
         this.debugMode = true;
+
 
         initArrivalGenerator();
     }
@@ -93,6 +100,8 @@ public class SimulationEngine {
         String type = config.getArrivalDistributionType();
 
         if (type.equalsIgnoreCase("NEGEXP")) {
+            this.baseArrivalLambda = config.getArrivalLambda();
+            this.currentArrivalLambda = baseArrivalLambda;
 
             arrivalGenerator =
                     new Negexp(config.getArrivalLambda());
@@ -103,6 +112,19 @@ public class SimulationEngine {
             );
         }
     }
+
+    public void updateArrivalLambda(double newLambda) {
+        if (newLambda <= 0) throw new IllegalArgumentException("Lambda must be positive.");
+
+        this.currentArrivalLambda = newLambda;
+
+        if (arrivalGenerator instanceof Negexp negexp) {
+            negexp.setMean(newLambda);
+        }
+    }
+
+
+
 
 
 
@@ -269,9 +291,69 @@ public class SimulationEngine {
             throw new IllegalArgumentException("Multiplier must be positive.");
         }
 
+        this.speedMultiplier = multiplier;
         double newTimeScale = 1000.0 / multiplier;
-        changeSpeed(newTimeScale);
+        this.timeScale = newTimeScale;
+        changeSpeed(this.timeScale);
     }
+
+    public double getSpeedMultiplier() {
+        return this.speedMultiplier;
+    }
+
+    public synchronized void applyScenario(Scenario scenario) {
+        System.out.println(">>> Applying scenario: " + scenario);
+
+        double newLambda;
+
+        // Update arrival rate
+        switch(scenario) {
+            case NORMAL:
+                newLambda = 3.333;
+                config.setArrivalLambda(newLambda);
+                updateArrivalLambda(newLambda);
+                break;
+
+            case PEAK_TIME:
+                newLambda = 2.0;
+                config.setArrivalLambda(newLambda);
+                updateArrivalLambda(newLambda);
+                break;
+
+            case LOW_TRAFFIC:
+                newLambda = 6.0;
+                config.setArrivalLambda(newLambda);
+                updateArrivalLambda(newLambda);
+                break;
+
+            case SYSTEM_STRESS:
+                newLambda = 1.5;
+                config.setArrivalLambda(newLambda);
+                updateArrivalLambda(newLambda);
+                break;
+
+            case RECOVERY_MODE:
+                newLambda = 5.0;
+                config.setArrivalLambda(newLambda);
+                updateArrivalLambda(newLambda);
+                break;
+        }
+
+
+        // Update service means automatically
+        Map<String, Double> means = config.getScenarioServiceMeans().get(scenario);
+        if (means != null) {
+            for (Map.Entry<String, Double> entry : means.entrySet()) {
+                config.setServiceMeanFor(entry.getKey(), entry.getValue());
+            }
+        }
+
+        for (ServicePoint sp : grouping) {
+            double newBase = config.getServiceMeanFor(sp.getServicePointName());
+            sp.updateBaseServiceMean(newBase);
+        }
+    }
+
 
 
 

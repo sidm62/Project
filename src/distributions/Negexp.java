@@ -33,6 +33,14 @@ public class Negexp extends Generator implements ContinuousGenerator {
         this.mean = mean;
     }
 
+    public void setMean(double mean) {
+        if (mean<=0)
+            throw new ParameterException("Negexp: The mean must be greater than 0.");
+        this.mean = mean;
+    }
+
+
+
     /**
      * Generate a new random number.
      * @return The next random number in the sequence
