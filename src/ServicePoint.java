@@ -1,3 +1,4 @@
+
 import java.util.LinkedList;
 import distributions.ContinuousGenerator;
 import distributions.Normal;
@@ -9,6 +10,7 @@ public abstract class ServicePoint {
 
     protected SimulationEngine engine;
     protected double simulationEndTime_from_engine;
+    protected double liveSimulationTime;
 
     // Performance Counters
     protected int arrivalCount;     // A
@@ -86,7 +88,7 @@ public abstract class ServicePoint {
         // Reset runtime mean to new base
         this.currentServiceMean = newBaseMean;
 
-        // Recreate generator if needed
+       this.liveSimulationTime = Clock.getInstance().getTime();
 
         if (serviceGenerator instanceof Normal normal) {
             normal.setMean(newBaseMean);
@@ -182,6 +184,10 @@ public abstract class ServicePoint {
 
     public double getThroughput() {
         return simulationEndTime_from_engine == 0 ? 0 : completionCount / simulationEndTime_from_engine;
+    }
+
+    public double getLiveThroughput() {
+        return liveSimulationTime == 0 ? 0 : completionCount / liveSimulationTime;
     }
 
     public double getAverageServiceTime() {

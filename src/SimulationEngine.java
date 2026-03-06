@@ -9,6 +9,7 @@ public class SimulationEngine {
     private EventList eventList;
     private boolean running;
     private double simulationEndTime;
+    private double simulationLiveTime;
     private NormalCheckin normalCheckin;
     private SelfCheckin selfCheckin;
     private RegularSecurity regularSecurity;
@@ -40,6 +41,10 @@ public class SimulationEngine {
     private double baseArrivalLambda;
     private double currentArrivalLambda;
 
+    private volatile double arrivalSpeedFactor = 1.0;
+    private volatile double serviceSpeedFactor = 1.0;
+    private volatile double traversalSpeedFactor = 1.0;
+
 
     public SimulationEngine(double simulationEndTime, Configuration config) {
         this.eventList = new EventList();
@@ -68,6 +73,45 @@ public class SimulationEngine {
 
         initArrivalGenerator();
     }
+
+    public ArrayList<ServicePoint> getGrouping() { return grouping; }
+
+
+    public synchronized void setArrivalSpeedFactor(double factor) {
+        validateFactor(factor);
+        arrivalSpeedFactor = factor;
+    }
+
+    public synchronized void setServiceSpeedFactor(double factor) {
+        validateFactor(factor);
+        serviceSpeedFactor = factor;
+    }
+
+    public synchronized void setTraversalSpeedFactor(double factor) {
+        validateFactor(factor);
+        traversalSpeedFactor = factor;
+    }
+
+    public double getServiceSpeedFactor() {
+        return serviceSpeedFactor;
+    }
+
+    public double getTraversalSpeedFactor() {
+        return traversalSpeedFactor;
+    }
+
+    public double getArrivalSpeedFactor() {
+        return arrivalSpeedFactor;
+    }
+
+
+    private void validateFactor(double factor) {
+        if (factor <= 0) {
+            throw new IllegalArgumentException("Factor must be positive.");
+        }
+    }
+
+
 
     public boolean isDebugMode() { return debugMode; }
     public void setDebugMode(boolean debugMode_answer) {
@@ -141,6 +185,11 @@ public class SimulationEngine {
 
     public double getSystemThroughput() {
         return simulationEndTime == 0 ? 0 : totalPassengersCompleted / simulationEndTime;
+    }
+
+    public double getLiveThroughput() {
+        simulationLiveTime = Clock.getInstance().getTime();
+        return simulationLiveTime == 0 ? 0 : totalPassengersCompleted / simulationLiveTime;
     }
 
     public double getAverageSystemTime() {
@@ -534,6 +583,19 @@ public class SimulationEngine {
         }
     }
 
+    public double scaleArrival(double value) {
+        return value / arrivalSpeedFactor;
+    }
+
+    public double scaleService(double value) {
+        return value / serviceSpeedFactor;
+    }
+
+    public double scaleTraversal(double value) {
+        return value / traversalSpeedFactor;
+    }
+
+
     private void handleArrival(Passenger passenger) {
 
         allPassengers.add(passenger);
@@ -557,7 +619,7 @@ public class SimulationEngine {
         ));
 
         // Schedule next system arrival
-        double nextArrivalTime = Clock.getInstance().getTime() + arrivalGenerator.sample();
+        double nextArrivalTime = scaleArrival(Clock.getInstance().getTime() + arrivalGenerator.sample());
 
         if (nextArrivalTime <= simulationEndTime) {
             scheduleEvent(new Event(
@@ -618,7 +680,7 @@ public class NormalCheckin extends ServicePoint {
                 scale = config.getFirstCheckinScale();
         }
 
-        return baseTime * scale;
+        return scaleService(baseTime * scale);
     }
 
     @Override
@@ -629,7 +691,7 @@ public class NormalCheckin extends ServicePoint {
     @Override
     protected void routeAfterCompletion(Passenger passenger) {
 
-        double traversal = passenger.sampleTraversalTime(Transition.CHECKIN_TO_SECURITY);
+        double traversal = engine.scaleTraversal(passenger.sampleTraversalTime(Transition.CHECKIN_TO_SECURITY));
         // Record traversal history
         passenger.recordTraversalTime(servicePointName, traversal);
 
@@ -680,7 +742,7 @@ public class SelfCheckin extends ServicePoint {
             value = serviceGenerator.sample();
         } while (value <= 0);
 
-        return value;
+        return engine.scaleService(value);
     }
 
     @Override
@@ -691,7 +753,7 @@ public class SelfCheckin extends ServicePoint {
     @Override
     protected void routeAfterCompletion(Passenger passenger) {
 
-        double traversal = passenger.sampleTraversalTime(Transition.CHECKIN_TO_SECURITY);
+        double traversal = engine.scaleTraversal(passenger.sampleTraversalTime(Transition.CHECKIN_TO_SECURITY));
         // Record traversal history
         passenger.recordTraversalTime(servicePointName, traversal);
 
@@ -745,7 +807,11 @@ public class RegularSecurity extends ServicePoint {
         double weight = passenger.getCarryOnWeight();
         double factor = config.getSecurityWeightFactor();
 
-        return baseTime + (weight * factor);
+        double formula = baseTime + (weight * factor);
+
+        return scaleService(formula);
+
+        // need to implement scaleService
     }
 
     @Override
@@ -761,12 +827,12 @@ public class RegularSecurity extends ServicePoint {
 
         if (passenger.isInternationalFlight()) {
 
-            traversal = passenger.sampleTraversalTime(Transition.SECURITY_TO_CUSTOMS);
+            traversal = scaleTraversal(passenger.sampleTraversalTime(Transition.SECURITY_TO_CUSTOMS));
             nextArrival = EventType.ARRIVAL_CUSTOMS;
 
         } else {
 
-            traversal = passenger.sampleTraversalTime(Transition.SECURITY_TO_BOARDING);
+            traversal = scaleTraversal(passenger.sampleTraversalTime(Transition.SECURITY_TO_BOARDING));
             nextArrival = EventType.ARRIVAL_BOARDING;
         }
 
@@ -820,7 +886,8 @@ public class FastTrackSecurity extends ServicePoint {
         double weight = passenger.getCarryOnWeight();
         double factor = config.getSecurityWeightFactor();
 
-        return baseTime + (weight * factor);
+        double formula = baseTime + (weight * factor);
+        return scaleService(formula);
     }
 
     @Override
@@ -837,14 +904,14 @@ public class FastTrackSecurity extends ServicePoint {
         if (passenger.isInternationalFlight()) {
 
             traversal =
-                    passenger.sampleTraversalTime(Transition.SECURITY_TO_CUSTOMS);
+                    scaleTraversal(passenger.sampleTraversalTime(Transition.SECURITY_TO_CUSTOMS));
 
             nextArrival = EventType.ARRIVAL_CUSTOMS;
 
         } else {
 
             traversal =
-                    passenger.sampleTraversalTime(Transition.SECURITY_TO_BOARDING);
+                    scaleTraversal(passenger.sampleTraversalTime(Transition.SECURITY_TO_BOARDING));
 
             nextArrival = EventType.ARRIVAL_BOARDING;
         }
@@ -908,7 +975,7 @@ public class Customs extends ServicePoint {
                 scale = config.getFirstCustomsScale();
         }
 
-        return baseTime * scale;
+        return scaleService(baseTime * scale);
     }
 
     @Override
@@ -920,7 +987,8 @@ public class Customs extends ServicePoint {
     protected void routeAfterCompletion(Passenger passenger) {
 
         double traversal =
-                passenger.sampleTraversalTime(Transition.CUSTOMS_TO_BOARDING);
+                scaleTraversal(passenger.sampleTraversalTime(Transition.CUSTOMS_TO_BOARDING));
+
         // Record traversal history
         passenger.recordTraversalTime(servicePointName, traversal);
 
@@ -967,7 +1035,7 @@ public class Boarding extends ServicePoint {
             value = serviceGenerator.sample();
         } while (value <= 0);
 
-        return value;
+        return scaleService(value);
     }
 
     @Override
