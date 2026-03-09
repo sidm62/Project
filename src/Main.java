@@ -9,14 +9,20 @@ public class Main {
         // runSimulation(Scenario.NORMAL, 0.5, 1.0, 1.0, 60);
 
         // 3. Speed up traversal 2x
-        runSimulation(Scenario.NORMAL, 1.0, 2.0, 1.0, 60);
+        // runSimulation(Scenario.NORMAL, 1.0, 2.0, 1.0, 60);
 
         // 4. Slow arrivals 0.7x
-        runSimulation(Scenario.NORMAL, 1.0, 1.0, 0.7, 60);
+        // runSimulation(Scenario.NORMAL, 1.0, 1.0, 0.7, 60);
 
         // 5. Combine factors (optional)
-        runSimulation(Scenario.NORMAL, 0.5, 2.0, 0.7, 60);
+        // runSimulation(Scenario.NORMAL, 0.5, 2.0, 0.7, 60);
+
+        runSimulation(Scenario.SYSTEM_STRESS, 37298, 39749238, 2943728, 60);
+
+
     }
+
+
 
     private static void logSystemStats(SimulationEngine engine) {
         double currentTime = Clock.getInstance().getTime();
@@ -39,7 +45,7 @@ public class Main {
             double traversalFactor,
             double arrivalFactor,
             long runtimeSeconds
-    ) throws InterruptedException {
+    ){
 
         System.out.println("\n====================================");
         System.out.println("Scenario: " + scenario);
@@ -59,11 +65,28 @@ public class Main {
         engine.setTimeScale(1000);
         engine.setSpeedMultiplier(1.0);
 
+        try {
+            engine.setArrivalSpeedFactor(arrivalFactor);
+        } catch (Exception e) {
+            System.out.println("Not valid factor set. " + "Forced value: " + engine.getArrivalSpeedFactor());
+        }
+
+        try {
+            engine.setServiceSpeedFactor(serviceFactor);
+        } catch (Exception e) {
+            System.out.println("Not valid factor set. " + "Forced value: " + engine.getServiceSpeedFactor());
+        }
+
+        try {
+            engine.setTraversalSpeedFactor(traversalFactor);
+        } catch (Exception e) {
+            System.out.println("Not valid factor set. " + "Forced value: " + engine.getTraversalSpeedFactor());
+        }
+
+        System.out.println("Arrival Speed Factor: " + engine.getArrivalSpeedFactor() + " Service Speed Factor: " + engine.getServiceSpeedFactor() + " Traversal Speed Factor: " + engine.getTraversalSpeedFactor());
         engine.applyScenario(scenario);
 
-        engine.setServiceSpeedFactor(serviceFactor);
-        engine.setTraversalSpeedFactor(traversalFactor);
-        engine.setArrivalSpeedFactor(arrivalFactor);
+
 
         // Seed first arrival
         engine.scheduleEvent(new Event(
@@ -73,7 +96,11 @@ public class Main {
         ));
 
         // Run simulation to completion (no monitoring loop needed)
-        engine.run();
+        try {
+            engine.run();
+        } catch (Exception e) {
+            System.out.println("Exception occured. Wow! ");
+        }
 
         // Log stats after simulation finishes
         logSystemStats(engine);

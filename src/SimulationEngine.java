@@ -44,6 +44,10 @@ public class SimulationEngine {
     private volatile double arrivalSpeedFactor = 1.0;
     private volatile double serviceSpeedFactor = 1.0;
     private volatile double traversalSpeedFactor = 1.0;
+    private final double MAX_LOAD_RATIO = 1.29;
+    private final double MIN_FACTOR = 0.5;
+    private final double MAX_FACTOR = 2.0;
+
 
 
     public SimulationEngine(double simulationEndTime, Configuration config) {
@@ -77,39 +81,69 @@ public class SimulationEngine {
     public ArrayList<ServicePoint> getGrouping() { return grouping; }
 
 
-    public synchronized void setArrivalSpeedFactor(double factor) {
-        validateFactor(factor);
-        arrivalSpeedFactor = factor;
-    }
-
-    public synchronized void setServiceSpeedFactor(double factor) {
-        validateFactor(factor);
-        serviceSpeedFactor = factor;
-    }
-
-    public synchronized void setTraversalSpeedFactor(double factor) {
-        validateFactor(factor);
-        traversalSpeedFactor = factor;
-    }
-
-    public double getServiceSpeedFactor() {
-        return serviceSpeedFactor;
-    }
-
-    public double getTraversalSpeedFactor() {
-        return traversalSpeedFactor;
-    }
-
-    public double getArrivalSpeedFactor() {
-        return arrivalSpeedFactor;
-    }
-
-
-    private void validateFactor(double factor) {
-        if (factor <= 0) {
-            throw new IllegalArgumentException("Factor must be positive.");
+    public synchronized void setArrivalSpeedFactor(double factor) throws Exception {
+        double before_clamp = factor;
+        double clamped_factor = clamp(factor);
+        if (!validateFactors(clamped_factor, serviceSpeedFactor, traversalSpeedFactor)) {
+            Exception e = new Exception("Rejected arrival factor change: " + clamped_factor + " Before clamp: " + before_clamp);
+            System.out.println(e.getMessage());
+            throw e;
         }
+        arrivalSpeedFactor = clamped_factor;
     }
+    public double getArrivalSpeedFactor() {return arrivalSpeedFactor;}
+
+    public synchronized void setServiceSpeedFactor(double factor) throws Exception {
+        double before_clamp = factor;
+        double clamped_factor = clamp(factor);
+        if (!validateFactors(arrivalSpeedFactor, clamped_factor, traversalSpeedFactor)) {
+            Exception e = new Exception("Rejected service factor change: " + clamped_factor + " Before clamp: " + before_clamp);
+            System.out.println(e.getMessage());
+            throw e;
+        }
+        serviceSpeedFactor = clamped_factor;
+    }
+    public double getServiceSpeedFactor() {return serviceSpeedFactor;}
+
+    public synchronized void setTraversalSpeedFactor(double factor) throws Exception {
+        double before_clamp = factor;
+        double clamped_factor = clamp(factor);
+        if (!validateFactors(arrivalSpeedFactor, serviceSpeedFactor, clamped_factor)) {
+            Exception e = new Exception("Rejected traversal factor change: " + clamped_factor + " Before clamp: " + before_clamp);
+            System.out.println(e.getMessage());
+            throw e;
+        }
+        traversalSpeedFactor = clamped_factor;
+    }
+
+
+    public double getTraversalSpeedFactor() {return traversalSpeedFactor;}
+
+    private double clamp(double value) {
+        return Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, value));
+    }
+
+    private boolean validateFactors(
+            double arrival,
+            double service,
+            double traversal
+    ) {
+
+        // Absolute safety caps
+        if (arrival < MIN_FACTOR || arrival > MAX_FACTOR) return false;
+        if (service < MIN_FACTOR || service > MAX_FACTOR) return false;
+        if (traversal < MIN_FACTOR || traversal > MAX_FACTOR) return false;
+
+        // System stability check
+        double loadRatio = arrival / service;
+
+        if (loadRatio > MAX_LOAD_RATIO) {
+            return false;
+        }
+
+        return true;
+    }
+
 
 
 
