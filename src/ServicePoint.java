@@ -1,7 +1,10 @@
+package org.example;
 
 import java.util.LinkedList;
-import distributions.ContinuousGenerator;
-import distributions.Normal;
+import org.example.distributions.ContinuousGenerator;
+import org.example.distributions.Normal;
+
+import static java.lang.Math.clamp;
 
 public abstract class ServicePoint {
 
@@ -10,7 +13,6 @@ public abstract class ServicePoint {
 
     protected SimulationEngine engine;
     protected double simulationEndTime_from_engine;
-    protected double liveSimulationTime;
 
     // Performance Counters
     protected int arrivalCount;     // A
@@ -88,7 +90,7 @@ public abstract class ServicePoint {
         // Reset runtime mean to new base
         this.currentServiceMean = newBaseMean;
 
-       this.liveSimulationTime = Clock.getInstance().getTime();
+        // Recreate generator if needed
 
         if (serviceGenerator instanceof Normal normal) {
             normal.setMean(newBaseMean);
@@ -96,54 +98,46 @@ public abstract class ServicePoint {
     }
 
     public void adjustServiceTime(double factor) {
+        // 1. Määritellään rajat (samat kuin aiemmin)
+        double MIN_FACTOR = 0.6;   // Max 40% nopeutus
+        double MAX_FACTOR = 1.0;   // Ei hidastusta yli perusnopeuden
 
-        double MIN_FACTOR = 0.6;   // don’t go faster than 40% speedup
-        double MAX_FACTOR = 1.0;   // never slower than base
+        // 2. Asetetaan kerroin rajojen sisään
+        this.currentFactor = Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, factor));
+        this.lastAdjustmentTime = Clock.getInstance().getTime();
 
-        currentFactor = Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, factor));
+        // 3. Lasketaan uudet arvot käyttäen baseServiceMean-muuttujaa
+        // Jos baseStdDev on 0, käytetään oletuksena 20% hajontaa keskiarvosta
+        if (baseStdDev <= 0) baseStdDev = baseServiceMean * 0.2;
 
-        temp_mean = baseMean * currentFactor;
-        temp_stdDev = baseStdDev * currentFactor;
+        this.temp_mean = baseServiceMean * currentFactor;
+        this.temp_stdDev = baseStdDev * currentFactor;
 
-        double min_stdDev = 0.001; // min threshold
-        temp_stdDev = Math.max(temp_stdDev, min_stdDev);
+        // Varmistetaan, ettei hajonta mene nollaan (Normal-jakauma vaatii varianssin > 0)
+        double min_stdDev = 0.001;
+        this.temp_stdDev = Math.max(this.temp_stdDev, min_stdDev);
 
+        // 4. Päivitetään generaattori uudella skaalatulla Normal-jakaumalla
+        // Huom: Normal ottaa parametreina (keskiarvo, varianssi eli stdDev^2)
         this.serviceGenerator = new Normal(temp_mean, temp_stdDev * temp_stdDev);
-    }
 
-    public double getCurrentFactor() {
-        return currentFactor;
-    }
-
-    public double getLastAdjustmentTime() {
-        return lastAdjustmentTime;
-    }
-
-    public void setLastAdjustmentTime(double time) {
-        this.lastAdjustmentTime = time;
-    }
-
-    public boolean isServerIdle() {
-        return !serverBusy;
-    }
-
-    public boolean isQueueEmpty() {
-        return queue.isEmpty();
-    }
-
-    public void enqueue(Passenger p) {
-        updateQueueStatistics();
-        queue.add(p);
         if (engine.isDebugMode()) {
-            System.out.printf(
-                    "[TIME %.3f] %s QUEUED ARRIVAL | PassengerID: %d | Queue size: %d%n",
-                    Clock.getInstance().getTime(),
-                    servicePointName,
-                    p.getId(),
-                    queue.size()
-            );
+            System.out.printf("[SCALING] %s: Factor %.2f -> New Mean: %.2f%n",
+                    servicePointName, currentFactor, temp_mean);
         }
     }
+
+    public void setLastAdjustmentTime(double lastAdjustmentTime) {
+        this.lastAdjustmentTime = lastAdjustmentTime;
+    }
+    public double getCurrentFactor() {
+        return this.currentFactor;
+    }
+    public double getLastAdjustmentTime() {
+        return this.lastAdjustmentTime;
+    }
+
+
 
     public Passenger dequeue() {
         updateQueueStatistics();
@@ -186,10 +180,6 @@ public abstract class ServicePoint {
         return simulationEndTime_from_engine == 0 ? 0 : completionCount / simulationEndTime_from_engine;
     }
 
-    public double getLiveThroughput() {
-        return liveSimulationTime == 0 ? 0 : completionCount / liveSimulationTime;
-    }
-
     public double getAverageServiceTime() {
         return completionCount == 0 ? 0 : busyTime / completionCount;
     }
@@ -207,6 +197,22 @@ public abstract class ServicePoint {
 
     public double getAverageWaitingTime() {
         return completionCount == 0 ? 0 : cumulativeWaitingTime / completionCount;
+    }
+
+    public boolean isQueueEmpty() { return queue.isEmpty(); }
+    public void enqueue(Passenger passenger) {
+        updateQueueStatistics();
+        queue.add(passenger);
+
+        if (engine.isDebugMode()) {
+            System.out.printf(
+                    "[TIME %.3f] %s ENQUEUE | PassengerID: %d | Queue size: %d%n",
+                    Clock.getInstance().getTime(),
+                    servicePointName,
+                    passenger.getId(),
+                    queue.size()
+            );
+        }
     }
 
     private void updateQueueStatistics() {
@@ -304,7 +310,7 @@ public abstract class ServicePoint {
         passenger.setQueueEntryTime(currentTime);
         passenger.recordQueueEntryTime(servicePointName, currentTime);
 
-        if (isServerIdle()) {
+        if (!serverBusy) {
 
             startService(passenger);
 
@@ -379,6 +385,27 @@ public abstract class ServicePoint {
         }
 
         routeAfterCompletion(passenger);
+    }
+    public void reset() {
+        this.arrivalCount = 0;
+        this.completionCount = 0;
+        this.queue.clear();
+        this.busyTime = 0;
+        this.cumulativeResponseTime = 0;
+        this.cumulativeWaitingTime = 0;
+
+        this.areaUnderQueueLengthCurve = 0;
+        this.lastQueueLengthUpdateTime = 0;
+        this.maxQueueLength = 0;
+
+        this.currentFactor = 1.0;
+        this.lastAdjustmentTime = 0.0;
+
+        this.currentServiceMean = baseServiceMean;
+        if (serviceGenerator instanceof Normal normal) {
+            normal.setMean(baseServiceMean);
+        }
+
     }
 
 
