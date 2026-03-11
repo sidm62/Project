@@ -1,0 +1,314 @@
+package org.example;
+
+import javafx.animation.TranslateTransition;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+
+
+
+
+public class AirportView extends Application {
+
+    private static SimulationEngine sharedEngine;
+    private static AirportView instance;
+    private AirportController controller;
+
+    private SimulationEngine engine;
+    private Pane animationPane;
+    private TextArea infoArea = new TextArea();
+
+    // Matkustajat, jotka odottavat Step Mode -lupaa
+    private static Map<Integer, Runnable> waitingPassengers = new HashMap<>();
+
+    private static final double START_X = 50;
+    private static final double START_Y = 280;
+
+    public static void setEngine(SimulationEngine engine) {
+        sharedEngine = engine;
+    }
+
+    public static AirportView getInstance() {
+        return instance;
+    }
+    @Override
+    public void start(Stage stage) {
+        instance = this;
+        this.controller = new AirportController(this);
+        if (sharedEngine == null) throw new IllegalStateException("Engine not set!");
+        this.engine = sharedEngine;
+
+        BorderPane root = new BorderPane();
+        animationPane = new Pane();
+        animationPane.setPrefSize(1000, 500);
+        animationPane.setStyle("-fx-background-color: #f4f4f4; -fx-border-color: #ccc;");
+
+        root.setCenter(animationPane);
+        createServicePoints();
+        createBottomPanel(root);
+
+        Scene scene = new Scene(root, 1000, 800);
+        stage.setTitle("Airport Simulation - Visualizer (TimeScale Mode)");
+        stage.setScene(scene);
+        stage.show();
+
+
+        controller.startSimulation(engine);
+    }
+
+
+    private void createServicePoints() {
+        animationPane.getChildren().addAll(
+                createServiceNode(150, 180, "Normal Check-in", Color.LIGHTBLUE),
+                createServiceNode(150, 320, "Self Check-in", Color.DEEPSKYBLUE),
+                createServiceNode(400, 180, "Regular Security", Color.LIGHTGREEN),
+                createServiceNode(400, 320, "Fast Track", Color.GREEN),
+                createServiceNode(600, 250, "Customs", Color.PINK),
+                createServiceNode(800, 250, "Boarding", Color.ORANGE)
+        );
+    }
+
+    private StackPane createServiceNode(double x, double y, String label, Color color) {
+        Rectangle r = new Rectangle(120, 60, color);
+        r.setArcWidth(10); r.setArcHeight(10); r.setStroke(Color.BLACK);
+        Label l = new Label(label);
+        l.setStyle("-fx-font-weight: bold; -fx-font-size: 10px;");
+        StackPane sp = new StackPane(r, l);
+        sp.setLayoutX(x); sp.setLayoutY(y);
+        return sp;
+    }
+
+    public static void animateSinglePassenger(Passenger p) {
+        if (instance != null) {
+            Platform.runLater(() -> instance.createPassengerAnimation(p));
+        }
+    }
+
+    private void createPassengerAnimation(Passenger p) {
+        Color passengerColor = (p.getTicketType() == TicketType.ECONOMY) ? Color.RED : Color.BLUE;
+        Circle node = new Circle(7, passengerColor);
+        node.setStroke(Color.BLACK);
+        node.setLayoutX(START_X);
+        node.setLayoutY(START_Y);
+
+        animationPane.getChildren().add(node);
+        animateStep(p, node, 0);
+    }
+
+    private void animateStep(Passenger p, Circle node, int stage) {
+        double targetX, targetY;
+        int nextStage = stage + 1;
+
+        switch (stage) {
+            case 0: // Check-in
+                if (p.getCheckinLuggageType() == LuggageType.OVERSIZED || !p.isEligibleForSelfCheckin()) {
+                    targetX = 150 + 60; targetY = 180 + 30;
+                } else {
+                    targetX = 150 + 60; targetY = 320 + 30;
+                }
+                break;
+            case 1: // Security
+                if (p.usesFastTrackSecurity()) {
+                    targetX = 400 + 60; targetY = 320 + 30;
+                } else {
+                    targetX = 400 + 60; targetY = 180 + 30;
+                }
+                break;
+            case 2: // Customs
+                if (p.isInternationalFlight()) {
+                    targetX = 600 + 60; targetY = 250 + 30;
+                } else {
+                    animateStep(p, node, 3);
+                    return;
+                }
+                break;
+            case 3: // Boarding
+                targetX = 800 + 60; targetY = 250 + 30;
+                break;
+            default: // Matka valmis
+                animationPane.getChildren().remove(node);
+                showPassengerInfo(p);
+                return;
+        }
+
+        // Käytetään alkuperäistä timeScalea animaation kestona (muunnettuna sekunneiksi)
+        double durationSeconds = engine.getTimeScale() / 1000.0;
+
+        TranslateTransition move = new TranslateTransition(Duration.seconds(durationSeconds), node);
+        move.setToX(targetX - START_X);
+        move.setToY(targetY - START_Y);
+
+        move.setOnFinished(e -> {
+            if (engine.isStepMode()) {
+                waitingPassengers.put(p.getId(), () -> animateStep(p, node, nextStage));
+            } else {
+                animateStep(p, node, nextStage);
+            }
+        });
+        move.play();
+    }
+
+    private void createBottomPanel(BorderPane root) {
+        VBox bottom = new VBox(10);
+        bottom.setPadding(new Insets(15));
+        bottom.setStyle("-fx-background-color: #eee; -fx-border-color: #bbb; -fx-border-width: 1 0 0 0;");
+
+        // --- SLIDER-ALUE (Kaikki 3 skaalaustekijää + visualisointiviive) ---
+        GridPane sliderGrid = new GridPane();
+        sliderGrid.setHgap(20); sliderGrid.setVgap(8);
+
+        // 1. Animaation viive (Visualisointi)
+        Slider timeScaleSlider = new Slider(100, 2000, engine.getTimeScale());
+        timeScaleSlider.valueProperty().addListener((obs, old, val) -> engine.setTimeScale(val.doubleValue()));
+        sliderGrid.add(new Label("Animaation viive (ms):"), 0, 0);
+        sliderGrid.add(timeScaleSlider, 1, 0);
+
+        // 2. Kulkunopeus (Traversal Factor)
+        Slider walkSlider = new Slider(0.5, 2.0, engine.getTraversalSpeedFactor());
+        walkSlider.valueProperty().addListener((obs, old, val) -> {
+            try {
+                engine.setTraversalSpeedFactor(val.doubleValue());
+            } catch (Exception ex) { /* Validointi hoitaa, UI ei kaadu */ }
+        });
+        sliderGrid.add(new Label("Kävelynopeus (kerroin):"), 0, 1);
+        sliderGrid.add(walkSlider, 1, 1);
+
+        // 3. Saapumisnopeus (Arrival Factor) - Lisätään slider tällekin
+        Slider arrivalSlider = new Slider(0.5, 2.0, engine.getArrivalSpeedFactor());
+        arrivalSlider.valueProperty().addListener((obs, old, val) -> {
+            try {
+                engine.setArrivalSpeedFactor(val.doubleValue());
+            } catch (Exception ex) {
+                // Jos validointi (loadRatio) hylkää, palautetaan slider vanhaan arvoon
+                Platform.runLater(() -> {
+                    arrivalSlider.setValue(old.doubleValue());
+                    infoArea.appendText("!!! ESTETTY: Saapumisnopeus liian suuri suhteessa palveluun!\n");
+                });
+            }
+        });
+        sliderGrid.add(new Label("Matkustajavirta (kerroin):"), 2, 0);
+        sliderGrid.add(arrivalSlider, 3, 0);
+
+        // --- KONTROLLI-RIVI ---
+        HBox controls = new HBox(15);
+        controls.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<Scenario> scenarioChooser = new ComboBox<>();
+        scenarioChooser.getItems().addAll(Scenario.values());
+        scenarioChooser.setValue(Scenario.NORMAL);
+        scenarioChooser.setOnAction(e -> engine.applyScenario(scenarioChooser.getValue()));
+
+        ToggleButton stepToggle = new ToggleButton("Step Mode");
+        Button nextBtn = new Button("Next Event >>");
+        nextBtn.setDisable(true);
+
+        // Staff Boost (Service Speed)
+        ToggleButton boostToggle = new ToggleButton("Staff Boost (Turbo)");
+        boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
+        boostToggle.setOnAction(e -> {
+            try {
+                double factor = boostToggle.isSelected() ? 0.6 : 1.0;
+                engine.setServiceSpeedFactor(factor);
+
+                if (boostToggle.isSelected()) {
+                    boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #e74c3c; -fx-text-fill: white;");
+                    infoArea.appendText(">>> STAFF BOOST: Henkilökunta nopeutettu.\n");
+                } else {
+                    boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
+                    infoArea.appendText(">>> STAFF BOOST: Normaali nopeus.\n");
+                }
+            } catch (Exception ex) {
+                boostToggle.setSelected(false);
+                infoArea.appendText("!!! VIRHE: " + ex.getMessage() + "\n");
+            }
+        });
+
+        Button replayBtn = new Button("Replay ↺");
+        replayBtn.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        // (Step mode & Replay logiikka säilyy samana...)
+        stepToggle.setOnAction(e -> {
+            boolean active = stepToggle.isSelected();
+            engine.setStepMode(active);
+            nextBtn.setDisable(!active);
+            if (!active) releaseWaitingPassengers();
+        });
+
+        nextBtn.setOnAction(e -> {
+            engine.requestNextStep();
+            releaseWaitingPassengers();
+        });
+
+        replayBtn.setOnAction(e -> {
+            engine.resetSimulation();
+            animationPane.getChildren().removeIf(n -> n instanceof Circle);
+            infoArea.clear();
+            waitingPassengers.clear();
+            stepToggle.setSelected(false);
+            boostToggle.setSelected(false);
+            boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
+            nextBtn.setDisable(true);
+            infoArea.appendText(">>> Simulaatio nollattu. Aloitetaan alusta...\n");
+            controller.startSimulation(engine);
+        });
+
+        controls.getChildren().addAll(new Label("Skenaario:"), scenarioChooser, stepToggle, nextBtn, boostToggle, replayBtn);
+
+        infoArea.setEditable(false);
+        infoArea.setPrefHeight(120);
+        infoArea.setStyle("-fx-font-family: 'Courier New';");
+
+        bottom.getChildren().addAll(sliderGrid, controls, new Label("Tapahtumaloki:"), infoArea);
+        root.setBottom(bottom);
+    }
+
+    private void releaseWaitingPassengers() {
+        new ArrayList<>(waitingPassengers.values()).forEach(Runnable::run);
+        waitingPassengers.clear();
+    }
+
+    public void showPassengerInfo(Passenger p) {
+        Platform.runLater(() -> {
+            infoArea.appendText(String.format("[%03d] %s | Valmis ajassa: %.1f\n",
+                    p.getId(), p.getTicketType(), Clock.getInstance().getTime()));
+            infoArea.setScrollTop(Double.MAX_VALUE);
+        });
+    }
+    public void showFinalResults(double avgTime, int totalCompleted, double validationError) {
+        Platform.runLater(() -> {
+            infoArea.appendText("\n" + "=".repeat(35) + "\n");
+            infoArea.appendText("     SIMULAATION LOPPUTULOKSET\n");
+            infoArea.appendText(String.format(" Valmistuneet matkustajat: %d kpl\n", totalCompleted));
+            infoArea.appendText(String.format(" Keskim. viipymäaika:     %.2f\n", avgTime));
+
+            // Näytetään Littlen lain mukainen virheprosentti
+            infoArea.appendText(String.format(" Validiteettivirhe (avg):  %.2f%%\n", validationError));
+
+            // Annetaan sanallinen arvio tarkkuudesta
+            if (validationError < 1.0) {
+                infoArea.appendText(" >>> Tila: Erittäin tarkka (Valid).\n");
+            } else if (validationError < 5.0) {
+                infoArea.appendText(" >>> Tila: Hyväksyttävä poikkeama.\n");
+            } else {
+                infoArea.appendText(" >>> Tila: Epävakaa (Tarkista kuormitus).\n");
+            }
+
+            infoArea.appendText("=".repeat(35) + "\n");
+
+
+            infoArea.setScrollTop(Double.MAX_VALUE);
+        });
+    }
+}
