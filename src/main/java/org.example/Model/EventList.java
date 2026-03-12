@@ -1,3 +1,5 @@
+package org.example.Model;
+
 import java.util.PriorityQueue;
 
 public class EventList {

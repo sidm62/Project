@@ -1,8 +1,8 @@
-package org.example;
+package org.example.Model;
 
 import java.util.LinkedList;
-import org.example.distributions.ContinuousGenerator;
-import org.example.distributions.Normal;
+import org.example.Model.distributions.ContinuousGenerator;
+import org.example.Model.distributions.Normal;
 
 import static java.lang.Math.clamp;
 

@@ -1,4 +1,4 @@
-package org.example;
+package org.example.View;
 
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
@@ -17,6 +17,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 
+import org.example.Controller.AirportController;
+import org.example.Model.SimulationEngine;
+import org.example.Model.Passenger;
+import org.example.Model.Clock;
+import org.example.Model.Scenario;
+import org.example.Model.LuggageType;
+import org.example.Model.TicketType;
 
 
 

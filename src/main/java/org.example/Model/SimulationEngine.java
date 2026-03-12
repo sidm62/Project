@@ -1,12 +1,13 @@
-package org.example;
+package org.example.Model;
 
 import javafx.application.Platform;
-import org.example.distributions.*;
+import org.example.Model.distributions.*;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.example.View.AirportView;
 
 
 public class SimulationEngine {
@@ -474,7 +475,7 @@ public class SimulationEngine {
         exportPassengerCSV("Passengers.csv");
 
         // KÄYNNISTETÄÄN ANIMAATIO AUTOMAATTISESTI
-        // Tämä siirtää ohjauksen SimulationEngineltä AirportView'lle
+        // Tämä siirtää ohjauksen SimulationEngineltä AirportView.java'lle
 
     }
 

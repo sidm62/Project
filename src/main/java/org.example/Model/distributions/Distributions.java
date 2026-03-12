@@ -1,4 +1,4 @@
-package distributions;
+package org.example.Model.distributions;
 
 /**
  * offers several discrete and continuous distributions all seeded by a common

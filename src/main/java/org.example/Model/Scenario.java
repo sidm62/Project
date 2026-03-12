@@ -1,3 +1,5 @@
+package org.example.Model;
+
 public enum Scenario {
         NORMAL,
         PEAK_TIME,

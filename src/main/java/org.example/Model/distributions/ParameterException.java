@@ -1,4 +1,4 @@
-package distributions;
+package org.example.Model.distributions;
 
 /**
  * Error thrown when a distribution is passed incorrect parameters.

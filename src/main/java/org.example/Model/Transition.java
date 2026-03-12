@@ -1,3 +1,5 @@
+package org.example.Model;
+
 public enum Transition {
 
     CHECKIN_TO_SECURITY {

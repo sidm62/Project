@@ -1,6 +1,9 @@
-package org.example;
+package org.example.Controller;
+
 
 import javafx.application.Platform;
+import org.example.Model.SimulationEngine;
+import org.example.View.AirportView;
 
 public class AirportController {
     private AirportView view;

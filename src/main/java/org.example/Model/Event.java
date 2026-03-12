@@ -1,3 +1,5 @@
+package org.example.Model;
+
 public class Event implements Comparable<Event> {
 
     private final double eventTime;

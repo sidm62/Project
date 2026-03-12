@@ -1,4 +1,4 @@
-package distributions;
+package org.example.Model.distributions;
 
 import javax.swing.*;
 import java.io.FileWriter;

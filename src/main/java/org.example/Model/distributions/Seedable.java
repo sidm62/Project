@@ -1,4 +1,4 @@
-package distributions;
+package org.example.Model.distributions;
 
 /** represents classes which has a seed
  * @see Generator

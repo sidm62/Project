@@ -1,3 +1,5 @@
+package org.example.Model;
+
 public class Clock {
 
     private static Clock instance;

@@ -1,4 +1,4 @@
-package distributions;
+package org.example.Model.distributions;
 
 /**
  * A random number generator producing pseudorandom numbers based

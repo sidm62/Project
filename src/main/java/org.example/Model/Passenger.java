@@ -1,9 +1,10 @@
-import distributions.Bernoulli;
-import distributions.ContinuousGenerator;
-import distributions.DiscreteGenerator;
-import distributions.Normal;
-import distributions.Uniform;
-import distributions.*;
+package org.example.Model;
+
+import org.example.Model.distributions.Bernoulli;
+import org.example.Model.distributions.ContinuousGenerator;
+import org.example.Model.distributions.DiscreteGenerator;
+import org.example.Model.distributions.Normal;
+import org.example.Model.distributions.Uniform;
 
 import java.util.HashMap;
 

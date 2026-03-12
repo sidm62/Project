@@ -1,4 +1,4 @@
-package distributions;
+package org.example.Model.distributions;
 
 /**
  * A generic Generator class which delegates its Seedable ability to a <code>Distributions</code> object.
