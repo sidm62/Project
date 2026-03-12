@@ -110,6 +110,10 @@ public class SimulationEngine {
         this.timeScale = timeScale;
     }
 
+    public void setSimulationEndTime(double simulationEndTime) {
+        this.simulationEndTime = simulationEndTime;
+        if (debugMode) System.out.println("Uusi simulaation kesto on asetettu: " + timeScale);
+    }
 
 
     // ---------- Formatting Helpers ----------
