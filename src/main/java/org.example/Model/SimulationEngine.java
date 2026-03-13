@@ -1749,12 +1749,12 @@ public class SimulationEngine {
 
         try (FileWriter writer = new FileWriter(filename)) {
             // Header
-            writer.write("ServicePoint,Arrivals,Completions,AvgWaitingTime,AvgServiceTime,AvgResponseTime,Utilization,AvgQueueLength,LqPredicted,LqErrorPercent,MaxQueueLength\n");
+            writer.write("ServicePoint,Arrivals,Completions,AvgWaitingTime,AvgServiceTime,AvgResponseTime,Utilization,AvgQueueLength,LqPredicted,LqErrorPercent,AvgNumberInSystem,MaxQueueLength\n");
 
             for (ServicePoint sp : grouping) {
                 if (sp.getCompletionCount() == 0) continue;
 
-                writer.write(String.format("%s,%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%d\n",
+                writer.write(String.format("%s,%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.3f,%d\n",
                         sp.getServicePointName(),
                         sp.getArrivalCount(),
                         sp.getCompletionCount(),
@@ -1765,6 +1765,7 @@ public class SimulationEngine {
                         sp.getAverageQueueLength(),
                         sp.getPredictedAverageQueueLength(),
                         sp.getLittleLawQueueErrorPercent(),
+                        sp.getAverageNumberInSystem(),
                         sp.getMaxQueueLength()
                 ));
             }
