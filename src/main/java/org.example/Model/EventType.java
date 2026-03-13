@@ -1,31 +1,51 @@
 package org.example.Model;
 
+/**
+ * Enumeration of all possible event types in the simulation.
+ *
+ * Each value represents a specific event that can occur during the
+ * passenger flow through the airport system. These events are used
+ * by the simulation engine to determine what action should happen
+ * next when an event is processed.
+ */
 public enum EventType {
 
-    // System-level
+    /** Passenger arrives to the airport system. */
     ARRIVAL_SYSTEM,
 
-    // Normal Check-in
+    /** Passenger arrives at the normal check-in counter. */
     ARRIVAL_NORMAL_CHECKIN,
+
+    /** Normal check-in service is completed. */
     NORMAL_CHECKIN_COMPLETE,
 
-    // Self Check-in
+    /** Passenger arrives at the self check-in machine. */
     ARRIVAL_SELF_CHECKIN,
+
+    /** Self check-in process is completed. */
     SELF_CHECKIN_COMPLETE,
 
-    // Regular Security
+    /** Passenger arrives at regular security control. */
     ARRIVAL_REGULAR_SECURITY,
+
+    /** Regular security check is completed. */
     REGULAR_SECURITY_COMPLETE,
 
-    // Fast Track Security
+    /** Passenger arrives at fast-track security. */
     ARRIVAL_FASTTRACK_SECURITY,
+
+    /** Fast-track security check is completed. */
     FASTTRACK_SECURITY_COMPLETE,
 
-    // Customs
+    /** Passenger arrives at customs control. */
     ARRIVAL_CUSTOMS,
+
+    /** Customs processing is completed. */
     CUSTOMS_COMPLETE,
 
-    // Boarding
+    /** Passenger arrives at boarding gate. */
     ARRIVAL_BOARDING,
+
+    /** Boarding process is completed. */
     BOARDING_COMPLETE
 }

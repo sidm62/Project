@@ -7,10 +7,20 @@ package org.example.Model.distributions;
   */
 
 public class Pareto extends Generator implements ContinuousGenerator {
+    /**
+     * Shape parameter of the Pareto distribution.
+     */
     private double shape;
+
+    /**
+     * Scale parameter of the Pareto distribution.
+     */
     private double scale;
     /**
-     * the seed is aumatically provided by the <code>SeedGenerator</code>
+     * The seed is automatically provided by the <code>SeedGenerator</code>.
+     *
+     * @param scale The scale parameter of the Pareto distribution
+     * @param shape The shape parameter of the Pareto distribution
      */
     public Pareto(double scale, double shape) {
         super();
@@ -19,8 +29,11 @@ public class Pareto extends Generator implements ContinuousGenerator {
 
     /**
      * The constructor with which a specific seed is set for the random
-     * number generator
-     * @param seed The initial seed for the generator, two instances with
+     * number generator.
+     *
+     * @param scale The scale parameter of the distribution
+     * @param shape The shape parameter of the distribution
+     * @param seed The initial seed for the generator; two instances with
      *             the same seed will generate the same sequence of numbers
      */
     public Pareto(double scale, double shape, long seed) {
@@ -28,6 +41,13 @@ public class Pareto extends Generator implements ContinuousGenerator {
         set(shape, scale);
     }
 
+    /**
+     * Sets the parameters of the Pareto distribution.
+     *
+     * @param shape the shape parameter
+     * @param scale the scale parameter
+     * @throws ParameterException if shape or scale are not greater than zero
+     */
     private void set(double shape, double scale) {
         if (shape<=0 || scale<=0)
             throw new ParameterException("Pareto: Shape and scale parameters must be greater than 0.");

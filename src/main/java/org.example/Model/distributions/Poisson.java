@@ -7,9 +7,14 @@ package org.example.Model.distributions;
   */
 
 public class Poisson extends Generator implements DiscreteGenerator {
+    /**
+     * Mean (λ) of the Poisson distribution.
+     */
     private double mean;
     /**
-     * the seed is aumatically provided by the <code>SeedGenerator</code>
+     * The seed is automatically provided by the <code>SeedGenerator</code>.
+     *
+     * @param mean The mean value of the Poisson distribution
      */
     public Poisson(double mean) {
         super();
@@ -17,9 +22,10 @@ public class Poisson extends Generator implements DiscreteGenerator {
     }
 
     /**
-     * The constructor with which a specific seed is set for the random
-     * number generator
-     * @param seed The initial seed for the generator, two instances with
+     * Creates a Poisson random number generator with a specific seed.
+     *
+     * @param mean the mean of the distribution
+     * @param seed the initial seed for the generator; two instances with
      *             the same seed will generate the same sequence of numbers
      */
     public Poisson(double mean, long seed) {
@@ -27,6 +33,12 @@ public class Poisson extends Generator implements DiscreteGenerator {
         set(mean);
     }
 
+    /**
+     * Sets the mean parameter of the Poisson distribution.
+     *
+     * @param mean the mean value
+     * @throws ParameterException if the mean is not greater than zero
+     */
     private void set(double mean) {
         if (mean<=0)
             throw new ParameterException("Poisson: The mean must be greater than 0.");

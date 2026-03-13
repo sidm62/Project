@@ -7,10 +7,21 @@ package org.example.Model.distributions;
   */
 
 public class Uniform extends Generator implements ContinuousGenerator {
+    /**
+     * Lower bound of the distribution.
+     */
     private double min;
+
+    /**
+     * Upper bound of the distribution.
+     */
     private double max;
     /**
-     * the seed is aumatically provided by the <code>SeedGenerator</code>
+     * Creates a uniform random number generator.
+     * The seed is automatically provided by the {@code SeedGenerator}.
+     *
+     * @param min lower bound of the distribution
+     * @param max upper bound of the distribution
      */
     public Uniform(double min, double max) {
         super();
@@ -18,9 +29,11 @@ public class Uniform extends Generator implements ContinuousGenerator {
     }
 
     /**
-     * The constructor with which a specific seed is set for the random
-     * number generator
-     * @param seed The initial seed for the generator, two instances with
+     * Creates a uniform random number generator with a specific seed.
+     *
+     * @param min lower bound of the distribution
+     * @param max upper bound of the distribution
+     * @param seed the initial seed for the generator; two instances with
      *             the same seed will generate the same sequence of numbers
      */
     public Uniform(double min, double max, long seed) {
@@ -28,6 +41,13 @@ public class Uniform extends Generator implements ContinuousGenerator {
         set(min, max);
     }
 
+    /**
+     * Sets the parameters of the uniform distribution.
+     *
+     * @param min lower bound
+     * @param max upper bound
+     * @throws ParameterException if max is not greater than min
+     */
     private void set(double min, double max) {
         if (max<=min)
             throw new ParameterException("Uniform: The maximum must be greater than the minimum.");

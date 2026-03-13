@@ -7,9 +7,14 @@ package org.example.Model.distributions;
   */
 
 public class Negexp extends Generator implements ContinuousGenerator {
+    /**
+     * Mean of the negative exponential distribution.
+     */
     private double mean;
     /**
-     * the seed is aumatically provided by the <code>SeedGenerator</code>
+     * The seed is automatically provided by the <code>SeedGenerator</code>.
+     *
+     * @param mean The mean value of the negative exponential distribution
      */
     public Negexp(double mean) {
         super();
@@ -18,8 +23,10 @@ public class Negexp extends Generator implements ContinuousGenerator {
 
     /**
      * The constructor with which a specific seed is set for the random
-     * number generator
-     * @param seed The initial seed for the generator, two instances with
+     * number generator.
+     *
+     * @param mean The mean value of the negative exponential distribution
+     * @param seed The initial seed for the generator; two instances with
      *             the same seed will generate the same sequence of numbers
      */
     public Negexp(double mean, long seed) {
@@ -27,12 +34,24 @@ public class Negexp extends Generator implements ContinuousGenerator {
         set(mean);
     }
 
+    /**
+     * Sets the mean parameter of the distribution.
+     *
+     * @param mean the mean of the distribution
+     * @throws ParameterException if the mean is not greater than zero
+     */
     private void set(double mean) {
         if (mean<=0)
             throw new ParameterException("Negexp: The mean must be greater than 0.");
         this.mean = mean;
     }
 
+    /**
+     * Updates the mean parameter of the distribution.
+     *
+     * @param mean the new mean value
+     * @throws ParameterException if the mean is not greater than zero
+     */
     public void setMean(double mean) {
         if (mean<=0)
             throw new ParameterException("Negexp: The mean must be greater than 0.");

@@ -7,10 +7,21 @@ package org.example.Model.distributions;
   */
 
 public class Weibull extends Generator implements ContinuousGenerator {
+    /**
+     * Scale parameter of the Weibull distribution.
+     */
     private double scale;
+
+    /**
+     * Shape parameter of the Weibull distribution.
+     */
     private double shape;
     /**
-     * the seed is aumatically provided by the <code>SeedGenerator</code>
+     * Creates a Weibull random number generator.
+     * The seed is automatically provided by the {@code SeedGenerator}.
+     *
+     * @param scale the scale parameter of the distribution
+     * @param shape the shape parameter of the distribution
      */
     public Weibull(double scale, double shape) {
         super();
@@ -18,9 +29,11 @@ public class Weibull extends Generator implements ContinuousGenerator {
     }
 
     /**
-     * The constructor with which a specific seed is set for the random
-     * number generator
-     * @param seed The initial seed for the generator, two instances with
+     * Creates a Weibull random number generator with a specific seed.
+     *
+     * @param scale the scale parameter of the distribution
+     * @param shape the shape parameter of the distribution
+     * @param seed the initial seed for the generator; two instances with
      *             the same seed will generate the same sequence of numbers
      */
     public Weibull(double scale, double shape, long seed) {
@@ -28,6 +41,13 @@ public class Weibull extends Generator implements ContinuousGenerator {
         set(scale, shape);
     }
 
+    /**
+     * Sets the parameters of the Weibull distribution.
+     *
+     * @param scale the scale parameter
+     * @param shape the shape parameter
+     * @throws ParameterException if scale or shape are not greater than zero
+     */
     private void set(double scale, double shape) {
         if (scale<=0 || shape <= 0)
             throw new ParameterException("Weibull:  Scale and shape parameters must be greater than 0.");

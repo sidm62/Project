@@ -1,22 +1,34 @@
 package org.example.Model.distributions;
 
 /**
- * offers several discrete and continuous distributions all seeded by a common
- * well-spaced pseudo random number generator (PRNG).
- */ 
+ * Provides several discrete and continuous probability distributions.
+ *
+ * All distributions use a common pseudo-random number generator (PRNG)
+ * as their source of randomness.
+ */
 public class Distributions {
-    /** A reference to the internal random generator.
-     */
+	/**
+	 * Reference to the internal continuous random generator
+	 * used as the base source of randomness.
+	 */
     ContinuousGenerator source;
-    
-    /** The seed is automatically provided by a well-spaced <code>SeedGenerator</code>
-     */
+
+	/**
+	 * Creates a distributions generator.
+	 * The seed is automatically provided by a well-spaced {@code SeedGenerator}.
+	 */
     public Distributions() { source = new RandomGenerator(); }
-    /** The seed is manually set */
+	/**
+	 * Creates a distributions generator with a manually specified seed.
+	 *
+	 * @param seed initial seed for the random generator
+	 */
     public Distributions(long seed) { source = new RandomGenerator(seed); }
-    /** This constructor allows for manually specially the continous generator 
-     * shared to compute the distribution function.
-     */
+	/**
+	 * Creates a distributions generator using a custom continuous generator.
+	 *
+	 * @param gen the continuous generator used as the randomness source
+	 */
     public Distributions(ContinuousGenerator gen) { source = gen; }
 
     // discrete distributions
@@ -65,6 +77,13 @@ public class Distributions {
     }
     
     // continuous distributions
+	/**
+	 * Helper method used in several distribution calculations.
+	 * Generates a powered random sample.
+	 *
+	 * @param a exponent parameter
+	 * @return sample^ (1/a) using the internal generator
+	 */
     private double power(double a) {
 	return Math.pow(source.sample(), 1.0/a);
     }

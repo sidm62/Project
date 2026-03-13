@@ -7,6 +7,9 @@ package org.example.Model.distributions;
  */
 
 public class ChiSquare extends Generator implements ContinuousGenerator {
+    /**
+     * Degrees of freedom of the Chi-Square distribution.
+     */
     private long deg_freedom;
     
     /**
@@ -29,7 +32,12 @@ public class ChiSquare extends Generator implements ContinuousGenerator {
 	super(seed);
 	set(deg_freedom);
     }
-    
+    /**
+     * Sets the parameter of the Chi-Square distribution.
+     *
+     * @param deg_freedom the degrees of freedom
+     * @throws ParameterException if the degrees of freedom is not positive
+     */
     private void set(long deg_freedom) {
 	if (deg_freedom <= 0L)
 	    throw new ParameterException("ChiSquare: The degrees of freedom must be a positive integer.");

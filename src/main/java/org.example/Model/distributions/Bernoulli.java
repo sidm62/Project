@@ -7,6 +7,7 @@ package org.example.Model.distributions;
  */
 
 public class Bernoulli extends Generator implements DiscreteGenerator {
+    /** Probability of success for the Bernoulli trial. */
     private double prob;
 
     /**
@@ -30,6 +31,12 @@ public class Bernoulli extends Generator implements DiscreteGenerator {
 	set(prob);
     }
 
+    /**
+     * Sets the probability of success for this generator.
+     *
+     * @param prob the probability of success (must be 0 ≤ prob ≤ 1)
+     * @throws ParameterException if prob is outside the valid range
+     */
     private void set(double prob) throws ParameterException {
 	if ((prob < 0.0) || (prob > 1.0))
 	    throw new ParameterException("Bernouilli: The probability of success must be between 0 and 1.");
@@ -42,6 +49,7 @@ public class Bernoulli extends Generator implements DiscreteGenerator {
      */
     public long sample() { return distrib.bernoulli(prob); }
 
+    /** Returns a string representation of the Bernoulli generator. */
     public String toString() { return "Bernoulli("+prob+")"; }
 }
 

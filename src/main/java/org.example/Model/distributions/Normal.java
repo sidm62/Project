@@ -5,9 +5,17 @@ package org.example.Model.distributions;
  * @version     1.0, 2 October 2002
  * @author      F.Mallet from Costas Simatos's original
  */
-
 public class Normal extends Generator implements ContinuousGenerator {
-    protected double mean, std_dev;
+    /**
+     * Mean (expected value) of the distribution.
+     */
+    protected double mean;
+
+    /**
+     * Standard deviation of the distribution.
+     * Computed as the square root of the variance.
+     */
+    protected double std_dev;
     
     /**
      * the seed is automatically provided by the <code>SeedGenerator</code>
@@ -31,7 +39,14 @@ public class Normal extends Generator implements ContinuousGenerator {
 	super(seed);
 	set(mean, variance);
     }
-    
+
+    /**
+     * Sets the parameters of the normal distribution.
+     *
+     * @param mean the mean of the distribution
+     * @param variance the variance of the distribution
+     * @throws ParameterException if the variance is not greater than zero
+     */
     private void set(double mean, double variance) {
 	if (variance <= 0.0)
 	    throw new ParameterException("Normal: The variance must be greater than 0.");
@@ -39,6 +54,11 @@ public class Normal extends Generator implements ContinuousGenerator {
 	this.std_dev = Math.sqrt(variance);
     }
 
+    /**
+     * Updates the mean of the distribution.
+     *
+     * @param mean the new mean value
+     */
     public void setMean(double mean) {
         this.mean = mean;
     }

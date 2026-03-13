@@ -7,7 +7,11 @@ package org.example.Model.distributions;
  */
 
 public class Beta extends Generator implements ContinuousGenerator {
-    protected double shape_a, shape_b;
+    /** Shape parameter 'a' of the Beta distribution (must be > 0). */
+    protected double shape_a;
+
+    /** Shape parameter 'b' of the Beta distribution (must be > 0). */
+    protected double shape_b;
     
     /**
      * the seed is automatically provided by the <code>SeedGenerator</code>
@@ -32,6 +36,12 @@ public class Beta extends Generator implements ContinuousGenerator {
 	set(shape_a, shape_b);
     }
 
+    /**
+     * Sets the shape parameters for this Beta distribution.
+     *
+     * @param shape_a first shape parameter (must be > 0)
+     * @param shape_b second shape parameter (must be > 0)
+     */
     private void set(double shape_a, double shape_b) {
 	if ((shape_a <= 0.0) || (shape_b <= 0.0))
 	    throw new ParameterException("Beta: The shape parameters must be greater than 0.");
@@ -39,9 +49,10 @@ public class Beta extends Generator implements ContinuousGenerator {
 	this.shape_b = shape_b;
     }
 
-  /**
-   * Generate a new random number.
-   * @return The next random number in the sequence
-   */
+    /**
+     * Generates a new random number following the Beta distribution.
+     *
+     * @return the next random number generated from the Beta(shape_a, shape_b)
+     */
     public double sample() { return distrib.beta(shape_a, shape_b); }
 }

@@ -7,7 +7,15 @@ package org.example.Model.distributions;
  */
 
 public class Cauchy extends Generator implements ContinuousGenerator {
-    private double median, scale;
+    /**
+     * Median of the Cauchy distribution.
+     */
+    private double median;
+
+    /**
+     * Scale parameter of the Cauchy distribution.
+     */
+    private double scale;
     
     /**
      * the seed is automatically provided by the <code>SeedGenerator</code>
@@ -31,7 +39,13 @@ public class Cauchy extends Generator implements ContinuousGenerator {
 	super(seed);
 	set(median, scale);
     }
-    
+    /**
+     * Sets the parameters of the Cauchy distribution.
+     *
+     * @param median the median of the distribution
+     * @param scale the scale parameter of the distribution
+     * @throws ParameterException if the scale parameter is not greater than zero
+     */
     private void set(double median, double scale) {
 	if (scale <= 0.0)
 	    throw new ParameterException("Cauchy: The scale parameter must be greater than 0.");

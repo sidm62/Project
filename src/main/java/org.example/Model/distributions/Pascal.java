@@ -7,10 +7,21 @@ package org.example.Model.distributions;
   */
 
 public class Pascal extends Generator implements DiscreteGenerator {
+    /**
+     * Probability of success in a trial.
+     */
     private double prob;
+
+    /**
+     * Number of required successes.
+     */
     private int successes;
     /**
-     * the seed is aumatically provided by the <code>SeedGenerator</code>
+     * Creates a Pascal random number generator.
+     * The seed is automatically provided by the {@code SeedGenerator}.
+     *
+     * @param prob probability of success in a trial
+     * @param successes number of required successes
      */
     public Pascal(double prob, int successes) {
         super();
@@ -18,9 +29,11 @@ public class Pascal extends Generator implements DiscreteGenerator {
     }
 
     /**
-     * The constructor with which a specific seed is set for the random
-     * number generator
-     * @param seed The initial seed for the generator, two instances with
+     * Creates a Pascal random number generator with a specific seed.
+     *
+     * @param prob probability of success in a trial
+     * @param successes number of required successes
+     * @param seed the initial seed for the generator; two instances with
      *             the same seed will generate the same sequence of numbers
      */
     public Pascal(double prob, int successes, long seed) {
@@ -28,6 +41,14 @@ public class Pascal extends Generator implements DiscreteGenerator {
         set(prob, successes);
     }
 
+    /**
+     * Sets the parameters of the Pascal distribution.
+     *
+     * @param prob probability of success
+     * @param successes number of required successes
+     * @throws ParameterException if probability is not between 0 and 1
+     *                            or successes is not positive
+     */
     private void set(double prob, int successes) {
         if (prob<=0 || prob>=1)
             throw new ParameterException("Pascal: The probability of success must be between 0 and 1.");

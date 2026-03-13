@@ -7,13 +7,13 @@ package org.example.Model.distributions;
  */
 public class ParameterException extends Error {
     /**
-	 * 
-	 */
+     * Serial version UID for serialization.
+     */
 	private static final long serialVersionUID = 1L;
 
 	/**
      * The constructor for errors with a message.
-     * @param name The error's message
+     * @param msg The error's message
      */
     public ParameterException(String msg) { super(msg); }
 

@@ -8,8 +8,25 @@ import org.example.Model.SimulationEngine;
 import org.example.Model.Passenger;
 import org.example.View.AirportView;
 
+/**
+ * Entry point of the airport simulation application.
+ *
+ * This class initializes the simulation configuration,
+ * creates the simulation engine and launches the JavaFX UI.
+ */
 public class Main {
-
+    /**
+     * Main method that starts the airport simulation program.
+     *
+     * The method performs the following steps:
+     * 1. Creates the simulation configuration.
+     * 2. Initializes the simulation engine.
+     * 3. Schedules the first passenger arrival event.
+     * 4. Starts the simulation in a background thread.
+     * 5. Launches the JavaFX graphical user interface.
+     *
+     * @param args command line arguments passed to the application
+     */
     public static void main(String[] args) {
         // 1. Alustetaan konfiguraatio ja moottori
         Configuration config = new Configuration();
