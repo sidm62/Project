@@ -20,12 +20,7 @@ import java.util.ArrayList;
 
 
 import org.example.Controller.AirportController;
-import org.example.Model.SimulationEngine;
-import org.example.Model.Passenger;
-import org.example.Model.Clock;
-import org.example.Model.Scenario;
-import org.example.Model.LuggageType;
-import org.example.Model.TicketType;
+import org.example.Model.*;
 
 /**
  * Provides the JavaFX user interface for the airport simulation.
@@ -42,7 +37,7 @@ public class AirportView extends Application {
     /**
      * Shared simulation engine instance used by the view.
      */
-    private static SimulationEngine sharedEngine;
+
     /**
      * Current AirportView instance.
      */
@@ -56,6 +51,8 @@ public class AirportView extends Application {
      * The simulation engine instance used for running the simulation.
      */
     private SimulationEngine engine;
+
+    Configuration config = new Configuration();
 
     /**
      * Pane where passenger animations are displayed.
@@ -86,9 +83,14 @@ public class AirportView extends Application {
      * Sets the simulation engine for the view.
      * @param engine the SimulationEngine instance to set
      */
-    public static void setEngine(SimulationEngine engine) {
-        sharedEngine = engine;
+    public void setEngine(SimulationEngine engine) {
+        this.engine = engine;
     }
+
+    public SimulationEngine getEngine() {
+        return engine;
+    }
+
 
     /**
      * Returns the singleton instance of AirportView.
@@ -107,10 +109,9 @@ public class AirportView extends Application {
     @Override
     public void start(Stage stage) {
         instance = this;
-        this.controller = new AirportController(this);
 
-        if (sharedEngine == null) throw new IllegalStateException("Engine not set!");
-        this.engine = sharedEngine;
+        this.controller = new AirportController(this, config);
+        this.engine = null;
 
         BorderPane root = new BorderPane();
         animationPane = new Pane();
@@ -261,35 +262,53 @@ public class AirportView extends Application {
         GridPane sliderGrid = new GridPane();
         sliderGrid.setHgap(30); sliderGrid.setVgap(10);
 
-        Slider timeScaleSlider = new Slider(100, 2000, engine.getTimeScale());
-        timeScaleSlider.valueProperty().addListener((obs, old, val) -> engine.setTimeScale(val.doubleValue()));
+        double defaultTimeScale = (engine != null) ? engine.getTimeScale() : 500;
+        Slider timeScaleSlider = new Slider(100, 2000, defaultTimeScale);
+        timeScaleSlider.valueProperty().addListener((obs, old, val) -> {
+            if (engine != null) engine.setTimeScale(val.doubleValue());
+        });
         sliderGrid.add(new Label("Animation delay (ms):"), 0, 0);
         sliderGrid.add(timeScaleSlider, 1, 0);
 
-        Slider walkSlider = new Slider(0.5, 2.0, engine.getTraversalSpeedFactor());
+
+        double defaultWalkSpeed = (engine != null) ? engine.getTraversalSpeedFactor() : 1.0;
+        Slider walkSlider = new Slider(0.5, 2.0, defaultWalkSpeed);
         walkSlider.valueProperty().addListener((obs, old, val) -> {
-            try { engine.setTraversalSpeedFactor(val.doubleValue()); } catch (Exception ignored) {}
+            if (engine != null) {
+                try { engine.setTraversalSpeedFactor(val.doubleValue()); } catch (Exception ignored) {}
+            }
         });
         sliderGrid.add(new Label("Walking speed (factor):"), 0, 1);
         sliderGrid.add(walkSlider, 1, 1);
 
-        Slider arrivalSlider = new Slider(0.5, 2.0, engine.getArrivalSpeedFactor());
+        double defaultArrival = (engine != null) ? engine.getArrivalSpeedFactor() : 1.0;
+        Slider arrivalSlider = new Slider(0.5, 2.0, defaultArrival);
         arrivalSlider.valueProperty().addListener((obs, old, val) -> {
-            try { engine.setArrivalSpeedFactor(val.doubleValue()); } catch (Exception ex) {
-                Platform.runLater(() -> {
-                    arrivalSlider.setValue(old.doubleValue());
-                    infoArea.appendText("!!! BLOCKED: Load too high.\n");
-                });
+            if (engine != null) {
+                try { engine.setArrivalSpeedFactor(val.doubleValue()); } catch (Exception ex) {
+                    Platform.runLater(() -> {
+                        arrivalSlider.setValue(old.doubleValue());
+                        infoArea.appendText("!!! BLOCKED: Load too high.\n");
+                    });
+                }
             }
         });
         sliderGrid.add(new Label("Passenger flow (factor):"), 2, 0);
         sliderGrid.add(arrivalSlider, 3, 0);
 
         Label durationLabel = new Label("Simulation duration:");
-        Spinner<Double> durationSpinner = new Spinner<>(100.0, 10000.0, engine.getSimulationEndTime(), 100.0);
+        double defaultDuration = (engine != null) ? engine.getSimulationEndTime() : 100.0;
+        Spinner<Double> durationSpinner = new Spinner<>(100.0, 10000.0, defaultDuration, 100.0);
         durationSpinner.setEditable(true);
         durationSpinner.setPrefWidth(100);
-        durationSpinner.valueProperty().addListener((obs, old, val) -> engine.setSimulationEndTime(val));
+
+        // Guarded listener to avoid NPE if engine is not yet created
+        durationSpinner.valueProperty().addListener((obs, old, val) -> {
+            if (engine != null) {
+                engine.setSimulationEndTime(val);
+            }
+        });
+
         sliderGrid.add(durationLabel, 2, 1);
         sliderGrid.add(durationSpinner, 3, 1);
 
@@ -301,8 +320,10 @@ public class AirportView extends Application {
         scenarioChooser.getItems().addAll(Scenario.values());
         scenarioChooser.setValue(Scenario.NORMAL);
         scenarioChooser.setOnAction(e -> {
-            engine.applyScenario(scenarioChooser.getValue());
-            infoArea.appendText(">>> SCENARIO CHANGED: " + scenarioChooser.getValue() + "\n");
+            if (engine != null) {
+                engine.applyScenario(scenarioChooser.getValue());
+                infoArea.appendText(">>> SCENARIO CHANGED: " + scenarioChooser.getValue() + "\n");
+            }
         });
 
         Button startBtn = new Button("Start Simulation ▶");
@@ -315,41 +336,71 @@ public class AirportView extends Application {
         ToggleButton boostToggle = new ToggleButton("Staff Boost (Turbo)");
         boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
 
-        Button replayBtn = new Button("Replay ↺");
+        Button replayBtn = new Button("Reset ↺");
         replayBtn.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;");
 
         // --- ACTIONS ---
         startBtn.setOnAction(e -> {
-            infoArea.appendText(">>> Simulation starting! (Duration: " + engine.getSimulationEndTime() + "s)\n");
+            engine = new SimulationEngine(durationSpinner.getValue(), config);
+            engine.setDebugMode(false);
+            engine.setSpeedMultiplier(5.0);
+            engine.scheduleEvent(new Event(0.0, EventType.ARRIVAL_SYSTEM, new Passenger(engine)));
+
+            setEngine(engine);
+            controller.setEngine(engine);
+
+            infoArea.appendText(">>> Simulation starting! (Duration: " + durationSpinner.getValue() + "s)\n");
             startBtn.setDisable(true);
             durationSpinner.setDisable(true);
-            controller.startSimulation(engine);
+
+            controller.startSimulation(durationSpinner.getValue());
         });
 
         boostToggle.setOnAction(e -> {
             double factor = boostToggle.isSelected() ? 0.6 : 1.0;
-            try { engine.setServiceSpeedFactor(factor); } catch (Exception ex) { throw new RuntimeException(ex); }
+            if (engine != null) {
+                try { engine.setServiceSpeedFactor(factor); } catch (Exception ex) { throw new RuntimeException(ex); }
+            }
             boostToggle.setStyle(boostToggle.isSelected() ? "-fx-font-weight: bold; -fx-base: #e74c3c; -fx-text-fill: white;" : "-fx-font-weight: bold; -fx-base: #2ecc71;");
             infoArea.appendText(boostToggle.isSelected() ? ">>> STAFF BOOST activated.\n" : ">>> STAFF BOOST deactivated.\n");
         });
 
         stepToggle.setOnAction(e -> {
             boolean active = stepToggle.isSelected();
-            engine.setStepMode(active);
+            if (engine != null) {
+                engine.setStepMode(active);
+            }
             nextBtn.setDisable(!active);
             if (!active) releaseWaitingPassengers();
         });
 
         nextBtn.setOnAction(e -> {
-            engine.requestNextStep();
+            if (engine != null) {
+                engine.requestNextStep();
+            }
             releaseWaitingPassengers();
         });
 
         replayBtn.setOnAction(e -> {
-            engine.resetSimulation();
+            // 1. Stop old engine if running (optional, depending on SimulationEngine design)
+            if (engine != null) {
+                engine.stopSimulation(); // implement stopSimulation() to safely halt threads
+            }
+            // engine.resetSimulation();
             animationPane.getChildren().removeIf(n -> n instanceof Circle);
             infoArea.clear();
             waitingPassengers.clear();
+
+            // Reset simulation globals
+            Clock.getInstance().reset();  // <--- RESET CLOCK HERE
+
+            engine = new SimulationEngine(durationSpinner.getValue(), config);
+            engine.setDebugMode(false);
+            engine.setSpeedMultiplier(5.0);
+            engine.scheduleEvent(new Event(0.0, EventType.ARRIVAL_SYSTEM, new Passenger(engine)));
+
+            setEngine(engine);
+            controller.setEngine(engine);
 
             startBtn.setDisable(false);
             durationSpinner.setDisable(false);

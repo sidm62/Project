@@ -55,4 +55,8 @@ public class EventList {
         return events.isEmpty();
     }
 
+    public void clear() {
+        events.clear();
+    }
+
 }

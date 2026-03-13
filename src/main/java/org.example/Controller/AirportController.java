@@ -1,56 +1,85 @@
 package org.example.Controller;
 
 import javafx.application.Platform;
-import org.example.Model.SimulationEngine;
+import org.example.Model.*;
 import org.example.View.AirportView;
 
 /**
  * Controller class for the airport simulation.
- * Handles communication between the simulation engine and the view.
+ *
+ * Responsible for coordinating the interaction between the
+ * user interface (AirportView) and the simulation engine.
+ *
+ * The controller starts simulations on a background thread to
+ * prevent blocking the JavaFX UI thread. For every simulation run,
+ * a fresh SimulationEngine instance is created to ensure that no
+ * residual state from previous runs affects the new simulation.
  */
 public class AirportController {
 
     /**
-     * Reference to the AirportView to update the UI.
+     * Reference to the AirportView used for updating the UI.
      */
     private AirportView view;
 
     /**
-     * Creates a new AirportController with the given view.
-     *
-     * @param view the AirportView instance to be controlled
+     * Simulation configuration used when creating new SimulationEngine instances.
      */
-    public AirportController(AirportView view) {
+    private Configuration config;
+
+    private SimulationEngine engine;
+
+    /**
+     * Creates a new AirportController with the given view and configuration.
+     *
+     * @param view   the AirportView instance controlled by this controller
+     * @param config the simulation configuration
+     */
+    public AirportController(AirportView view, Configuration config) {
         this.view = view;
+        this.config = config;
+    }
+
+    public void setEngine(SimulationEngine engine) {
+        this.engine = engine;
     }
 
     /**
-     * Starts the simulation in a separate thread.
+     * Starts a new simulation in a separate background thread.
      *
-     * The simulation engine is executed on a background thread to avoid blocking the UI.
-     * After completion, the results are displayed on the UI using Platform.runLater.
+     * A new SimulationEngine instance is created for each run to ensure that
+     * all simulation state (event list, passengers, service points, statistics)
+     * starts from a clean state.
      *
-     * @param engine the SimulationEngine instance to run the simulation
+     * The simulation runs asynchronously so that the JavaFX UI thread remains responsive.
+     * When the simulation finishes, the final results are sent back to the UI
+     * using Platform.runLater().
+     *
+     * @param simulationEndTime the total simulation duration in simulation time units
      */
-    public void startSimulation(SimulationEngine engine) {
+    public void startSimulation(double simulationEndTime) {
+        if (engine == null) {
+            throw new IllegalStateException("Cannot start simulation: engine is null. Did you forget to set it?");
+        }
 
         Thread simThread = new Thread(() -> {
             try {
                 Thread.sleep(500);
                 System.out.println("Controller: Starting simulation...");
 
+                view.setEngine(engine);
+                engine.setSimulationEndTime(simulationEndTime);
                 engine.run();
 
                 double avgTime = engine.getAverageSystemTime();
                 int totalCompleted = engine.getTotalPassengersCompleted();
-
                 double validationErrorPercent = engine.getLittleLawQueueError();
 
                 Platform.runLater(() -> {
                     view.showFinalResults(
                             avgTime,
                             totalCompleted,
-                            validationErrorPercent // UI receives the percentage (e.g., 0.45)
+                            validationErrorPercent
                     );
                 });
 
@@ -62,9 +91,8 @@ public class AirportController {
             }
         });
 
-        // Ensures that the thread terminates if the program is closed
+        // Ensure thread terminates if the application closes
         simThread.setDaemon(true);
         simThread.start();
     }
-
 }

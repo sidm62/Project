@@ -783,7 +783,7 @@ public class SimulationEngine {
                 }
                 nextStepRequested = false;
 
-                // 🔥 TÄRKEÄ KORJAUS: Kun askel otetaan, synkronoidaan reaalimaailman kello
+                // TÄRKEÄ KORJAUS: Kun askel otetaan, synkronoidaan reaalimaailman kello
                 // uudelleen simulaatioaikaan, jotta "sleep" ei hyppää askeleen yli.
                 realStartTime = System.currentTimeMillis();
                 simStartTime = Clock.getInstance().getTime();
@@ -942,6 +942,28 @@ public class SimulationEngine {
         }
     }
 
+    public void stopSimulation() {
+        // Stop the main simulation loop
+        running = false;
+
+        // If step mode is active, release any passengers waiting for the "Next" button
+        nextStepRequested = true;
+
+        // Interrupt the thread if it is sleeping
+        Thread.currentThread().interrupt();
+
+        // Clear remaining events
+        eventList.clear();
+
+        // Optional: wake up the thread if it's sleeping in step mode
+        synchronized (this) {
+            notifyAll();
+        }
+
+        System.out.println("SimulationEngine: Simulation stopped.");
+    }
+
+
     /**
      * Handles arrival of a passenger into the simulation system.
      *
@@ -951,6 +973,8 @@ public class SimulationEngine {
      *
      * @param passenger arriving passenger
      */
+
+
     private void handleArrival(Passenger passenger) {
 
         allPassengers.add(passenger);
@@ -1876,22 +1900,31 @@ public class SimulationEngine {
      * event is scheduled again.
      */
     public void resetSimulation() {
-        this.running = false;
-        this.eventList = new EventList();
-        this.allPassengers.clear();
-        this.totalPassengersCompleted = 0;
-        this.cumulativeSystemTime = 0.0;
+
+        running = false;
+
+        stepMode = false;
+        nextStepRequested = false;
+
+        eventList = new EventList();
+        allPassengers.clear();
+        totalPassengersCompleted = 0;
+        cumulativeSystemTime = 0.0;
+
         Clock.getInstance().setTime(0);
 
         SeedGenerator.getDefaultSeedGenerator().setSeed(this.baseSeed);
+
         for (ServicePoint sp : grouping) {
             sp.reset();
         }
+
         initArrivalGenerator();
 
         scheduleEvent(new Event(0, EventType.ARRIVAL_SYSTEM, new Passenger(this)));
-        this.running = true;
+
     }
+
 
 }
 
