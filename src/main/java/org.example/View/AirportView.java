@@ -79,6 +79,13 @@ public class AirportView extends Application {
      */
     private static final double START_Y = 280;
 
+    private double serviceBoost = 1.0;
+
+    private static final double BOOST_STEP = 0.1;
+    private static final double MIN_BOOST = 0.5; // fastest allowed
+    private static final double MAX_BOOST = 1.0; // normal speed
+
+
     /**
      * Sets the simulation engine for the view.
      * @param engine the SimulationEngine instance to set
@@ -333,6 +340,14 @@ public class AirportView extends Application {
         Button nextBtn = new Button("Next Event >>");
         nextBtn.setDisable(true);
 
+        Button boostMinusBtn = new Button("−");
+        Button boostPlusBtn = new Button("+");
+
+        Label boostLabel = new Label("Staff Boost: +0%");
+
+        boostMinusBtn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white;");
+        boostPlusBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+
         ToggleButton boostToggle = new ToggleButton("Staff Boost (Turbo)");
         boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
 
@@ -355,6 +370,58 @@ public class AirportView extends Application {
 
             controller.startSimulation(durationSpinner.getValue());
         });
+
+
+        boostPlusBtn.setOnAction(e -> {
+
+            if (engine == null) return;
+
+            if (serviceBoost - BOOST_STEP >= MIN_BOOST) {
+                serviceBoost -= BOOST_STEP;
+            }
+
+            try {
+                engine.setServiceSpeedFactor(serviceBoost);
+            } catch (Exception ex) {
+                infoArea.appendText("!!! Failed to apply service boost.\n");
+                return;
+            }
+
+            int boostPercent = (int)((1 - serviceBoost) * 100);
+
+            boostLabel.setText(String.format("Staff Boost: %d%%", boostPercent));
+
+            infoArea.appendText(
+                    String.format(">>> BOOST INCREASED → +%d%% service speed\n", boostPercent)
+            );
+        });
+
+
+        boostMinusBtn.setOnAction(e -> {
+
+            if (engine == null) return;
+
+            if (serviceBoost + BOOST_STEP <= MAX_BOOST) {
+                serviceBoost += BOOST_STEP;
+            }
+
+            try {
+                engine.setServiceSpeedFactor(serviceBoost);
+            } catch (Exception ex) {
+                infoArea.appendText("!!! Failed to apply service boost.\n");
+                return;
+            }
+
+            int boostPercent = (int)((1 - serviceBoost) * 100);
+
+            boostLabel.setText(String.format("Staff Boost: %d%%", boostPercent));
+
+            infoArea.appendText(
+                    String.format(">>> BOOST DECREASED → +%d%% service speed\n", boostPercent)
+            );
+        });
+
+
 
         boostToggle.setOnAction(e -> {
             double factor = boostToggle.isSelected() ? 0.6 : 1.0;
@@ -391,6 +458,10 @@ public class AirportView extends Application {
             infoArea.clear();
             waitingPassengers.clear();
 
+            serviceBoost = 1.0;
+            boostLabel.setText("Staff Boost: +0%");
+
+
             // Reset simulation globals
             Clock.getInstance().reset();  // <--- RESET CLOCK HERE
 
@@ -415,8 +486,15 @@ public class AirportView extends Application {
 
         controls.getChildren().addAll(
                 new Label("Scenario:"), scenarioChooser,
-                startBtn, stepToggle, nextBtn, boostToggle, replayBtn
+                startBtn,
+                stepToggle,
+                nextBtn,
+                boostMinusBtn,
+                boostLabel,
+                boostPlusBtn,
+                replayBtn
         );
+
 
         infoArea.setEditable(false);
         infoArea.setPrefHeight(150);
