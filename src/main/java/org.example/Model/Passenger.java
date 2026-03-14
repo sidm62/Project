@@ -159,9 +159,15 @@ public class Passenger {
      *
      * @return passenger id
      */
+
+
     public int getId() {
         return id;
     }
+    public static void resetIdCounter() {
+        nextId = 1;
+    }
+
 
     /**
      * Sets the departure time of the passenger.
@@ -201,6 +207,13 @@ public class Passenger {
     public double setTotalJourneyTime(double time) {
         double totalJourneyTime = getTotalJourneyTime();
         return totalJourneyTime = time;
+    }
+    private double removalTime;
+    public void setRemovalTime(double time) {
+        this.removalTime = time;
+    }
+    public double getRemovalTime() {
+        return removalTime;
     }
 
     /**

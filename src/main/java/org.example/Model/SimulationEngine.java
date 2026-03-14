@@ -830,8 +830,22 @@ public class SimulationEngine {
 
         // KÄYNNISTETÄÄN ANIMAATIO AUTOMAATTISESTI
         // Tämä siirtää ohjauksen SimulationEngineltä AirportView.java'lle
+        Platform.runLater(() -> {
+            AirportView view = AirportView.getInstance();
+            if (view != null) {
+                // Päivitetään matkustajataulukko
+                view.updateTableFromCSV("Passengers.csv", view.getPassengerTableView());
 
+                // Päivitetään palvelupistetaulukko
+                view.updateTableFromCSV("ServicePoints.csv", view.getServicePointTableView());
+
+                // Päivitetään järjestelmätilastot
+                view.updateTableFromCSV("System.csv", view.getSystemTableView());
+            }
+        });
     }
+
+
 
     // Process individual events based on type
     /**
