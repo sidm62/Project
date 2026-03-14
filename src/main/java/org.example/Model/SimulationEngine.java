@@ -30,6 +30,7 @@ public class SimulationEngine {
      * Indicates whether the simulation is currently running.
      */
     private boolean running;
+    private boolean drainingNotified = false;
     /**
      * Time at which the simulation should stop generating arrivals.
      */
@@ -1024,8 +1025,20 @@ public class SimulationEngine {
                     EventType.ARRIVAL_SYSTEM,
                     new Passenger(this)
             ));
-        } else if (debugMode) {
-            System.out.println("=== ARRIVALS STOPPED (Soft Close Activated) ===");
+        } else if (!drainingNotified) {
+            drainingNotified = true;
+
+            if (debugMode) {
+                System.out.println("=== ARRIVALS STOPPED (Soft Close Activated) ===");
+            }
+
+            // GUI notification
+            Platform.runLater(() -> {
+                AirportView view = AirportView.getInstance();
+                if (view != null) {
+                    view.getInfoArea().appendText(">>> Draining remaining passengers...\n");
+                }
+            });
         }
 
     }
@@ -1763,15 +1776,53 @@ public class SimulationEngine {
          *
          * @param passenger passenger that completed boarding
          */
+
+        /*
+        @Override
+        protected void routeAfterCompletion(Passenger passenger) {
+        passenger.setDepartureTime(finishTime);
+        engine.recordPassengerCompletion(passenger);
+        }
+
+         */
+
         @Override
         protected void routeAfterCompletion(Passenger passenger) {
 
+            double finishTime = Clock.getInstance().getTime();
+
             // Mark passenger as finished
-            passenger.setDepartureTime(Clock.getInstance().getTime());
+            passenger.setDepartureTime(finishTime);
 
             // Notify engine for statistics
             engine.recordPassengerCompletion(passenger);
+
+            // --- GUI logging (NEW) ---
+            boolean draining = finishTime > engine.getSimulationEndTime();
+
+            Platform.runLater(() -> {
+                AirportView view = AirportView.getInstance();
+                if (view != null) {
+
+                    if (draining) {
+                        view.getInfoArea().appendText(
+                                String.format("[%03d] %s | Finished at: %.1f (DRAINING)\n",
+                                        passenger.getId(),
+                                        passenger.getTicketType(),
+                                        finishTime));
+                    } else {
+                        view.getInfoArea().appendText(
+                                String.format("[%03d] %s | Finished at: %.1f\n",
+                                        passenger.getId(),
+                                        passenger.getTicketType(),
+                                        finishTime));
+                    }
+
+                    view.getInfoArea().setScrollTop(Double.MAX_VALUE);
+                }
+            });
         }
+
     }
 
 

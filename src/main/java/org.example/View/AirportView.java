@@ -65,6 +65,10 @@ public class AirportView extends Application {
      */
     private TextArea infoArea = new TextArea();
 
+    public TextArea getInfoArea() {
+        return infoArea;
+    }
+
     /**
      * Passengers waiting for Step Mode permission.
      */
@@ -93,6 +97,7 @@ public class AirportView extends Application {
 
     /**
      * Sets the simulation engine for the view.
+     *
      * @param engine the SimulationEngine instance to set
      */
     public void setEngine(SimulationEngine engine) {
@@ -102,8 +107,10 @@ public class AirportView extends Application {
     public SimulationEngine getEngine() {
         return engine;
     }
+
     /**
      * Palauttaa matkustajakohtaiset tulokset sisältävän taulukon.
+     *
      * @return TableView matkustajadatalla
      */
     public TableView<String[]> getPassengerTableView() {
@@ -112,6 +119,7 @@ public class AirportView extends Application {
 
     /**
      * Palauttaa palvelupistekohtaiset tilastot (jonot, käyttöasteet jne.).
+     *
      * @return TableView palvelupistedatalla
      */
     public TableView<String[]> getServicePointTableView() {
@@ -120,6 +128,7 @@ public class AirportView extends Application {
 
     /**
      * Palauttaa koko järjestelmän kattavat tunnusluvut.
+     *
      * @return TableView järjestelmädatalla
      */
     public TableView<String[]> getSystemTableView() {
@@ -127,14 +136,16 @@ public class AirportView extends Application {
     }
 
 
-
     /**
      * Returns the singleton instance of AirportView.
+     *
      * @return the AirportView instance
      */
     public static AirportView getInstance() {
         return instance;
     }
+
+    private Map<Integer, Circle> passengerNodes = new HashMap<>();
 
     /**
      * Initializes the JavaFX stage, sets up the scene and animation pane,
@@ -183,19 +194,22 @@ public class AirportView extends Application {
     /**
      * Creates a StackPane representing a service point.
      *
-     * @param x x-coordinate of the service point
-     * @param y y-coordinate of the service point
+     * @param x     x-coordinate of the service point
+     * @param y     y-coordinate of the service point
      * @param label text label for the service point
      * @param color background color for the service point
      * @return a StackPane representing the service point
      */
     private StackPane createServiceNode(double x, double y, String label, Color color) {
         Rectangle r = new Rectangle(120, 60, color);
-        r.setArcWidth(10); r.setArcHeight(10); r.setStroke(Color.BLACK);
+        r.setArcWidth(10);
+        r.setArcHeight(10);
+        r.setStroke(Color.BLACK);
         Label l = new Label(label);
         l.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
         StackPane sp = new StackPane(r, l);
-        sp.setLayoutX(x); sp.setLayoutY(y);
+        sp.setLayoutX(x);
+        sp.setLayoutY(y);
         return sp;
     }
 
@@ -223,14 +237,15 @@ public class AirportView extends Application {
         node.setLayoutY(START_Y);
 
         animationPane.getChildren().add(node);
+        passengerNodes.put(p.getId(), node);
         animateStep(p, node, 0);
     }
 
     /**
      * Performs a single step of passenger animation through the service points.
      *
-     * @param p the passenger
-     * @param node the Circle representing the passenger
+     * @param p     the passenger
+     * @param node  the Circle representing the passenger
      * @param stage the current stage in the simulation
      */
     private void animateStep(Passenger p, Circle node, int stage) {
@@ -240,49 +255,119 @@ public class AirportView extends Application {
         switch (stage) {
             case 0: // Check-in
                 if (p.getCheckinLuggageType() == LuggageType.OVERSIZED || !p.isEligibleForSelfCheckin()) {
-                    targetX = 150 + 60; targetY = 180 + 30;
+                    targetX = 150 + 60;
+                    targetY = 180 + 30;
                 } else {
-                    targetX = 150 + 60; targetY = 320 + 30;
+                    targetX = 150 + 60;
+                    targetY = 320 + 30;
                 }
                 break;
             case 1: // Security
                 if (p.usesFastTrackSecurity()) {
-                    targetX = 400 + 60; targetY = 320 + 30;
+                    targetX = 400 + 60;
+                    targetY = 320 + 30;
                 } else {
-                    targetX = 400 + 60; targetY = 180 + 30;
+                    targetX = 400 + 60;
+                    targetY = 180 + 30;
                 }
                 break;
             case 2: // Customs
                 if (p.isInternationalFlight()) {
-                    targetX = 600 + 60; targetY = 250 + 30;
+                    targetX = 600 + 60;
+                    targetY = 250 + 30;
                 } else {
                     animateStep(p, node, 3);
                     return;
                 }
                 break;
             case 3: // Boarding
-                targetX = 800 + 60; targetY = 250 + 30;
+                targetX = 800 + 60;
+                targetY = 250 + 30;
                 break;
             default: // Finished
                 animationPane.getChildren().remove(node);
-                showPassengerInfo(p);
                 return;
         }
 
-        double durationSeconds = engine.getTimeScale() / 1000.0;
+
+
+        // double durationSeconds = engine.getTimeScale() / 1000.0;
+        double durationSeconds = Math.max(engine.getTimeScale() / 1000.0, 0.25);
         TranslateTransition move = new TranslateTransition(Duration.seconds(durationSeconds), node);
-        move.setToX(targetX - START_X);
-        move.setToY(targetY - START_Y);
+
+        /* Move relative to current position */
+        double currentX = node.getTranslateX();
+        double currentY = node.getTranslateY();
+
+        // move.setToX(targetX - START_X);
+        // move.setToY(targetY - START_Y);
+
+        move.setToX(currentX + (targetX - (START_X + currentX)));
+        move.setToY(currentY + (targetY - (START_Y + currentY)));
 
         move.setOnFinished(e -> {
             if (engine.isStepMode()) {
                 waitingPassengers.put(p.getId(), () -> animateStep(p, node, nextStage));
             } else {
-                animateStep(p, node, nextStage);
+                // animateStep(p, node, nextStage);
+                Platform.runLater(() -> animateStep(p, node, nextStage));
             }
         });
         move.play();
     }
+
+    public void animatePassengerToNextService(Passenger p, EventType nextEvent) {
+
+        Platform.runLater(() -> {
+
+            Circle node = passengerNodes.get(p.getId());
+            if (node == null) return;
+
+            double targetX = START_X;
+            double targetY = START_Y;
+
+            switch (nextEvent) {
+
+                case ARRIVAL_NORMAL_CHECKIN:
+                    targetX = 150 + 60;
+                    targetY = 180 + 30;
+                    break;
+
+                case ARRIVAL_SELF_CHECKIN:
+                    targetX = 150 + 60;
+                    targetY = 320 + 30;
+                    break;
+
+                case ARRIVAL_REGULAR_SECURITY:
+                    targetX = 400 + 60;
+                    targetY = 180 + 30;
+                    break;
+
+                case ARRIVAL_FASTTRACK_SECURITY:
+                    targetX = 400 + 60;
+                    targetY = 320 + 30;
+                    break;
+
+                case ARRIVAL_CUSTOMS:
+                    targetX = 600 + 60;
+                    targetY = 250 + 30;
+                    break;
+
+                case ARRIVAL_BOARDING:
+                    targetX = 800 + 60;
+                    targetY = 250 + 30;
+                    break;
+            }
+
+            double duration = Math.max(engine.getTimeScale() / 1000.0, 0.25);
+
+            TranslateTransition move = new TranslateTransition(Duration.seconds(duration), node);
+            move.setToX(targetX - START_X);
+            move.setToY(targetY - START_Y);
+            move.play();
+        });
+    }
+
 
     /**
      * Creates the bottom control panel containing sliders, buttons, and scenario selection.
@@ -302,7 +387,8 @@ public class AirportView extends Application {
 
         // --- GRID: GENERAL SETTINGS (Sliderit ja Spinner) ---
         GridPane sliderGrid = new GridPane();
-        sliderGrid.setHgap(30); sliderGrid.setVgap(10);
+        sliderGrid.setHgap(30);
+        sliderGrid.setVgap(10);
 
         // Animation Delay
         double defaultTimeScale = (engine != null) ? engine.getTimeScale() : 500;
@@ -318,7 +404,10 @@ public class AirportView extends Application {
         Slider walkSlider = new Slider(0.5, 2.0, defaultWalkSpeed);
         walkSlider.valueProperty().addListener((obs, old, val) -> {
             if (engine != null) {
-                try { engine.setTraversalSpeedFactor(val.doubleValue()); } catch (Exception ignored) {}
+                try {
+                    engine.setTraversalSpeedFactor(val.doubleValue());
+                } catch (Exception ignored) {
+                }
             }
         });
         sliderGrid.add(new Label("Walking speed (factor):"), 0, 1);
@@ -329,7 +418,9 @@ public class AirportView extends Application {
         Slider arrivalSlider = new Slider(0.5, 2.0, defaultArrival);
         arrivalSlider.valueProperty().addListener((obs, old, val) -> {
             if (engine != null) {
-                try { engine.setArrivalSpeedFactor(val.doubleValue()); } catch (Exception ex) {
+                try {
+                    engine.setArrivalSpeedFactor(val.doubleValue());
+                } catch (Exception ex) {
                     Platform.runLater(() -> {
                         arrivalSlider.setValue(old.doubleValue());
                         infoArea.appendText("!!! BLOCKED: Load too high.\n");
@@ -437,7 +528,7 @@ public class AirportView extends Application {
                 return;
             }
 
-            int boostPercent = (int)((1 - serviceBoost) * 100);
+            int boostPercent = (int) ((1 - serviceBoost) * 100);
 
             boostLabel.setText(String.format("Staff Boost: %d%%", boostPercent));
 
@@ -462,7 +553,7 @@ public class AirportView extends Application {
                 return;
             }
 
-            int boostPercent = (int)((1 - serviceBoost) * 100);
+            int boostPercent = (int) ((1 - serviceBoost) * 100);
 
             boostLabel.setText(String.format("Staff Boost: %d%%", boostPercent));
 
@@ -472,11 +563,14 @@ public class AirportView extends Application {
         });
 
 
-
         boostToggle.setOnAction(e -> {
             double factor = boostToggle.isSelected() ? 0.6 : 1.0;
             if (engine != null) {
-                try { engine.setServiceSpeedFactor(factor); } catch (Exception ex) { throw new RuntimeException(ex); }
+                try {
+                    engine.setServiceSpeedFactor(factor);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
             }
             boostToggle.setStyle(boostToggle.isSelected() ? "-fx-font-weight: bold; -fx-base: #e74c3c; -fx-text-fill: white;" : "-fx-font-weight: bold; -fx-base: #2ecc71;");
             infoArea.appendText(boostToggle.isSelected() ? ">>> STAFF BOOST activated.\n" : ">>> STAFF BOOST deactivated.\n");
@@ -534,8 +628,7 @@ public class AirportView extends Application {
                 boostMinusBtn,
                 boostLabel,
                 boostPlusBtn,
-                replayBtn
-                startBtn, stepToggle, nextBtn, replayBtn,
+                replayBtn,
                 new Separator(Orientation.VERTICAL),
                 new Label("Quick Boost:"), quickBoostPicker
         );
@@ -581,13 +674,43 @@ public class AirportView extends Application {
      *
      * @param p the passenger whose info to display
      */
+
+    /*
+
+
     public void showPassengerInfo(Passenger p) {
         Platform.runLater(() -> {
             infoArea.appendText(String.format("[%03d] %s | Finished at: %.1f\n",
                     p.getId(), p.getTicketType(), Clock.getInstance().getTime()));
             infoArea.setScrollTop(Double.MAX_VALUE);
         });
+}
+
+     */
+
+    public void showPassengerInfo(Passenger p) {
+
+        double time = Clock.getInstance().getTime();
+        boolean draining = time > engine.getSimulationEndTime();
+
+        Platform.runLater(() -> {
+
+            if (draining) {
+                infoArea.appendText(String.format(
+                        "[%03d] %s | Finished at: %.1f (DRAINING)\n",
+                        p.getId(), p.getTicketType(), time));
+            } else {
+                infoArea.appendText(String.format(
+                        "[%03d] %s | Finished at: %.1f\n",
+                        p.getId(), p.getTicketType(), time));
+            }
+
+            infoArea.setScrollTop(Double.MAX_VALUE);
+        });
     }
+
+
+
 
     /**
      * Displays the final simulation results in the info area.
