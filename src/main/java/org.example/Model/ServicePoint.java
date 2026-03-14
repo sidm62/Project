@@ -23,6 +23,10 @@ public abstract class ServicePoint {
      */
     protected LinkedList<Passenger> queue;
 
+    public LinkedList<Passenger> getQueue() {
+        return queue;
+    }
+
     /**
      * Indicates whether the server is currently busy.
      */

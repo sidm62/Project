@@ -140,6 +140,14 @@ public class Configuration {
 
     private double traversalMaxTime = 15.0;
 
+    private final Map<String, Double> individualServiceSpeedFactors = new HashMap<>();
+
+    public void setIndividualServiceSpeedFactors(String pointName, double factor) {
+        individualServiceSpeedFactors.put(pointName, factor);
+    }
+    public double getIndividualServiceSpeedFactors(String pointName) {
+        return individualServiceSpeedFactors.getOrDefault(pointName, 1.0);
+    }
 
     // =========================
     // SCALING FACTORS
@@ -605,32 +613,35 @@ public class Configuration {
      * @throws IllegalArgumentException if the service point name is unknown
      */
     public double getServiceMeanFor(String servicePointName) {
-
+    double baseMean;
         switch (servicePointName) {
 
             case ServicePoint.NORMAL_CHECKIN:
-                return normalCheckinMean;
+                baseMean = normalCheckinMean;
+                break;
 
             case ServicePoint.SELF_CHECKIN:
-                return selfCheckinMean;
-
+                baseMean = selfCheckinMean;
+                break;
             case ServicePoint.REGULAR_SECURITY:
-                return regularSecurityMean;
-
+                baseMean = regularSecurityMean;
+                break;
             case ServicePoint.FASTTRACK_SECURITY:
-                return fasttrackSecurityMean;
-
+                baseMean = fasttrackSecurityMean;
+                break;
             case ServicePoint.CUSTOMS:
-                return customsMean;
-
+                baseMean = customsMean;
+                break;
             case ServicePoint.BOARDING:
-                return boardingMean;
-
+                baseMean = boardingMean;
+                break;
             default:
                 throw new IllegalArgumentException(
                         "Unknown service point: " + servicePointName
                 );
         }
+        double factor = getIndividualServiceSpeedFactors(servicePointName);
+        return baseMean / factor;
     }
 
     /**

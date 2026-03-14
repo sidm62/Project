@@ -4,6 +4,7 @@ import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -69,6 +70,10 @@ public class AirportView extends Application {
      */
     private static Map<Integer, Runnable> waitingPassengers = new HashMap<>();
 
+    private TableView<String[]> passengerTableView = new TableView<>();
+    private TableView<String[]> servicePointTableView = new TableView<>();
+    private TableView<String[]> systemTableView = new TableView<>();
+
     /**
      * Starting X coordinate for passenger animation nodes.
      */
@@ -97,6 +102,30 @@ public class AirportView extends Application {
     public SimulationEngine getEngine() {
         return engine;
     }
+    /**
+     * Palauttaa matkustajakohtaiset tulokset sisältävän taulukon.
+     * @return TableView matkustajadatalla
+     */
+    public TableView<String[]> getPassengerTableView() {
+        return passengerTableView;
+    }
+
+    /**
+     * Palauttaa palvelupistekohtaiset tilastot (jonot, käyttöasteet jne.).
+     * @return TableView palvelupistedatalla
+     */
+    public TableView<String[]> getServicePointTableView() {
+        return servicePointTableView;
+    }
+
+    /**
+     * Palauttaa koko järjestelmän kattavat tunnusluvut.
+     * @return TableView järjestelmädatalla
+     */
+    public TableView<String[]> getSystemTableView() {
+        return systemTableView;
+    }
+
 
 
     /**
@@ -260,15 +289,22 @@ public class AirportView extends Application {
      *
      * @param root the main BorderPane of the UI
      */
+    /**
+     * Creates the bottom control panel containing sliders, buttons, scenario selection,
+     * individual service point tuning, and result tables.
+     *
+     * @param root the main BorderPane of the UI
+     */
     private void createBottomPanel(BorderPane root) {
         VBox bottom = new VBox(10);
         bottom.setPadding(new Insets(15));
         bottom.setStyle("-fx-background-color: #eee; -fx-border-color: #bbb; -fx-border-width: 1 0 0 0;");
 
-        // --- GRID: SETTINGS ---
+        // --- GRID: GENERAL SETTINGS (Sliderit ja Spinner) ---
         GridPane sliderGrid = new GridPane();
         sliderGrid.setHgap(30); sliderGrid.setVgap(10);
 
+        // Animation Delay
         double defaultTimeScale = (engine != null) ? engine.getTimeScale() : 500;
         Slider timeScaleSlider = new Slider(100, 2000, defaultTimeScale);
         timeScaleSlider.valueProperty().addListener((obs, old, val) -> {
@@ -277,7 +313,7 @@ public class AirportView extends Application {
         sliderGrid.add(new Label("Animation delay (ms):"), 0, 0);
         sliderGrid.add(timeScaleSlider, 1, 0);
 
-
+        // Walking Speed
         double defaultWalkSpeed = (engine != null) ? engine.getTraversalSpeedFactor() : 1.0;
         Slider walkSlider = new Slider(0.5, 2.0, defaultWalkSpeed);
         walkSlider.valueProperty().addListener((obs, old, val) -> {
@@ -288,6 +324,7 @@ public class AirportView extends Application {
         sliderGrid.add(new Label("Walking speed (factor):"), 0, 1);
         sliderGrid.add(walkSlider, 1, 1);
 
+        // Passenger Flow
         double defaultArrival = (engine != null) ? engine.getArrivalSpeedFactor() : 1.0;
         Slider arrivalSlider = new Slider(0.5, 2.0, defaultArrival);
         arrivalSlider.valueProperty().addListener((obs, old, val) -> {
@@ -303,23 +340,19 @@ public class AirportView extends Application {
         sliderGrid.add(new Label("Passenger flow (factor):"), 2, 0);
         sliderGrid.add(arrivalSlider, 3, 0);
 
+        // Duration Spinner
         Label durationLabel = new Label("Simulation duration:");
         double defaultDuration = (engine != null) ? engine.getSimulationEndTime() : 100.0;
         Spinner<Double> durationSpinner = new Spinner<>(100.0, 10000.0, defaultDuration, 100.0);
         durationSpinner.setEditable(true);
         durationSpinner.setPrefWidth(100);
-
-        // Guarded listener to avoid NPE if engine is not yet created
         durationSpinner.valueProperty().addListener((obs, old, val) -> {
-            if (engine != null) {
-                engine.setSimulationEndTime(val);
-            }
+            if (engine != null) engine.setSimulationEndTime(val);
         });
-
         sliderGrid.add(durationLabel, 2, 1);
         sliderGrid.add(durationSpinner, 3, 1);
 
-        // --- HBOX: CONTROLS ---
+        // --- HBOX: CONTROLS (Painikkeet ja Uusi Valikko) ---
         HBox controls = new HBox(15);
         controls.setAlignment(Pos.CENTER_LEFT);
 
@@ -354,20 +387,37 @@ public class AirportView extends Application {
         Button replayBtn = new Button("Reset ↺");
         replayBtn.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;");
 
+        // --- UUSI: PIKATEHOSTUS-VALIKKO (Kuten skenaariovalinta) ---
+        ComboBox<String> quickBoostPicker = new ComboBox<>();
+        quickBoostPicker.getItems().addAll(
+                "Normal Check-in", "Self Check-in",
+                "Regular Security", "Fast Track",
+                "Customs", "Boarding"
+        );
+        quickBoostPicker.setPromptText("Boost Service Point...");
+        quickBoostPicker.setPrefWidth(180);
+
+        quickBoostPicker.setOnAction(e -> {
+            String selected = quickBoostPicker.getValue();
+            if (selected != null && config != null) {
+                config.setIndividualServiceSpeedFactors(selected, 1.2); // +20% tehostus
+                infoArea.appendText(">>> QUICK BOOST: " + selected + " activated (+20%)\n");
+                // Tyhjennetään valinta, jotta se on heti valmis uuteen valintaan
+                Platform.runLater(() -> quickBoostPicker.setValue(null));
+            }
+        });
+
         // --- ACTIONS ---
         startBtn.setOnAction(e -> {
             engine = new SimulationEngine(durationSpinner.getValue(), config);
             engine.setDebugMode(false);
             engine.setSpeedMultiplier(5.0);
             engine.scheduleEvent(new Event(0.0, EventType.ARRIVAL_SYSTEM, new Passenger(engine)));
-
             setEngine(engine);
             controller.setEngine(engine);
-
             infoArea.appendText(">>> Simulation starting! (Duration: " + durationSpinner.getValue() + "s)\n");
             startBtn.setDisable(true);
             durationSpinner.setDisable(true);
-
             controller.startSimulation(durationSpinner.getValue());
         });
 
@@ -434,28 +484,23 @@ public class AirportView extends Application {
 
         stepToggle.setOnAction(e -> {
             boolean active = stepToggle.isSelected();
-            if (engine != null) {
-                engine.setStepMode(active);
-            }
+            if (engine != null) engine.setStepMode(active);
             nextBtn.setDisable(!active);
             if (!active) releaseWaitingPassengers();
         });
 
         nextBtn.setOnAction(e -> {
-            if (engine != null) {
-                engine.requestNextStep();
-            }
+            if (engine != null) engine.requestNextStep();
             releaseWaitingPassengers();
         });
 
         replayBtn.setOnAction(e -> {
-            // 1. Stop old engine if running (optional, depending on SimulationEngine design)
-            if (engine != null) {
-                engine.stopSimulation(); // implement stopSimulation() to safely halt threads
-            }
-            // engine.resetSimulation();
+            if (engine != null) engine.stopSimulation();
             animationPane.getChildren().removeIf(n -> n instanceof Circle);
             infoArea.clear();
+            passengerTableView.getItems().clear();
+            servicePointTableView.getItems().clear();
+            systemTableView.getItems().clear();
             waitingPassengers.clear();
 
             serviceBoost = 1.0;
@@ -473,17 +518,14 @@ public class AirportView extends Application {
             setEngine(engine);
             controller.setEngine(engine);
 
+            Clock.getInstance().reset();
+            Passenger.resetIdCounter();
             startBtn.setDisable(false);
             durationSpinner.setDisable(false);
-            scenarioChooser.setDisable(false);
-            stepToggle.setSelected(false);
-            boostToggle.setSelected(false);
-            boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
-            nextBtn.setDisable(true);
-
-            infoArea.appendText(">>> Reset. You can start a new run.\n");
+            infoArea.appendText(">>> Reset complete. Ready for new run.\n");
         });
 
+        // Kokoa kontrollit riviin
         controls.getChildren().addAll(
                 new Label("Scenario:"), scenarioChooser,
                 startBtn,
@@ -493,14 +535,36 @@ public class AirportView extends Application {
                 boostLabel,
                 boostPlusBtn,
                 replayBtn
+                startBtn, stepToggle, nextBtn, replayBtn,
+                new Separator(Orientation.VERTICAL),
+                new Label("Quick Boost:"), quickBoostPicker
         );
 
 
-        infoArea.setEditable(false);
-        infoArea.setPrefHeight(150);
-        infoArea.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px;");
+        // --- TABPANE: TULOKSET JA LOGI ---
+        TabPane tabPane = new TabPane();
+        tabPane.setPrefHeight(250);
 
-        bottom.getChildren().addAll(sliderGrid, controls, new Label("Event log:"), infoArea);
+        // Alustetaan sarakkeet (HUOM: System sarakkeet korjattu vastaamaan CSV-dataa)
+        setupTableColumns(passengerTableView, new String[]{"ID", "Ticket", "Arrival", "Removal", "Duration"});
+        setupTableColumns(servicePointTableView, new String[]{"Station", "In", "Out", "Wait", "Svc", "Util", "Q-Len"});
+        setupTableColumns(systemTableView, new String[]{"Label", "Value"}); // Korjattu 2 sarakkeeseen
+
+        Tab logTab = new Tab("Event Log", infoArea);
+        Tab passTab = new Tab("Passengers", passengerTableView);
+        Tab spTab = new Tab("Service Points", servicePointTableView);
+        Tab sysTab = new Tab("System Stats", systemTableView);
+
+        logTab.setClosable(false);
+        passTab.setClosable(false);
+        spTab.setClosable(false);
+        sysTab.setClosable(false);
+
+        tabPane.getTabs().addAll(logTab, passTab, spTab, sysTab);
+
+        // --- KOKOAMINEN ---
+        // Huom: Poistin 'speedTuning' -osan, koska valikko on nyt 'controls' -rivissä
+        bottom.getChildren().addAll(sliderGrid, controls, tabPane);
         root.setBottom(bottom);
     }
 
@@ -547,5 +611,95 @@ public class AirportView extends Application {
             infoArea.appendText("=".repeat(45) + "\n");
             infoArea.setScrollTop(Double.MAX_VALUE);
         });
+    }
+    public void updateTableFromCSV(String filename, TableView<String[]> table) {
+        Platform.runLater(() -> {
+            try {
+                java.io.File file = new java.io.File(filename);
+                if (!file.exists()) return;
+                java.util.List<String> lines = java.nio.file.Files.readAllLines(file.toPath());
+                table.getItems().clear();
+                for (int i = 1; i < lines.size(); i++) {
+                    table.getItems().add(lines.get(i).split(","));
+                }
+            } catch (Exception e) { System.err.println("CSV Error: " + e.getMessage()); }
+        });
+    }
+
+    private void setupTableColumns(TableView<String[]> table, String[] columnNames) {
+        table.getColumns().clear();
+        for (int i = 0; i < columnNames.length; i++) {
+            final int colIndex = i;
+            TableColumn<String[], String> col = new TableColumn<>(columnNames[i]);
+
+            col.setCellValueFactory(cd -> {
+                String[] row = cd.getValue();
+                // TARKISTUS: Jos rivi on olemassa ja siinä on tarpeeksi sarakkeita
+                if (row != null && colIndex < row.length) {
+                    return new javafx.beans.property.SimpleStringProperty(row[colIndex]);
+                } else {
+                    // Jos dataa puuttuu, palautetaan tyhjä merkkijono kaatumisen sijaan
+                    return new javafx.beans.property.SimpleStringProperty("-");
+                }
+            });
+
+            table.getColumns().add(col);
+        }
+    }
+    /**
+     * Luo paneelin, jossa on painikkeet palvelupisteiden nopeuden säätämiseen.
+     * @return VBox-komponentti, joka sisältää painikkeet.
+     */
+    /**
+     * Luo paneelin, jossa on painikkeet palvelupisteiden nopeuden kasvattamiseen 20 % kerrallaan.
+     */
+    /**
+     * Luo paneelin, jossa palvelupisteiden nimet toimivat Boost-painikkeina.
+     */
+    private VBox createIndividualSpeedButtons() {
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        container.setStyle("-fx-background-color: #ddd; -fx-border-color: #bbb; -fx-border-radius: 8;");
+
+        Label title = new Label("Pikatehostus (+20%):");
+        title.setStyle("-fx-font-weight: bold;");
+
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        // 1. Luodaan pudotusvalikko
+        ComboBox<String> pointPicker = new ComboBox<>();
+        pointPicker.getItems().addAll(
+                "Normal Check-in", "Self Check-in",
+                "Regular Security", "Fast Track",
+                "Customs", "Boarding"
+        );
+        pointPicker.setPromptText("Valitse tehostettava piste...");
+        pointPicker.setPrefWidth(200);
+
+        // 2. Toiminto: Heti kun arvo muuttuu (valitaan listasta), tehostus aktivoituu
+        pointPicker.setOnAction(e -> {
+            String selectedPoint = pointPicker.getValue();
+
+            if (selectedPoint != null && config != null) {
+                // Asetetaan tehostus Configuration-olioon (1.2x nopeus)
+                config.setIndividualServiceSpeedFactors(selectedPoint,1.2);
+
+                // Lokiviesti ja palaute
+                infoArea.appendText(">>> BOOST AKTIVOITU: " + selectedPoint + "\n");
+
+                // Valinnaisesti: poistetaan valittu piste listalta,
+                // jotta sitä ei voi "boostata" monta kertaa vahingossa
+                // Platform.runLater(() -> pointPicker.getItems().remove(selectedPoint));
+
+                // Tyhjennetään valinta, jotta valikon teksti palaa ennalleen
+                Platform.runLater(() -> pointPicker.setValue(null));
+            }
+        });
+
+        row.getChildren().addAll(new Label("Kohde:"), pointPicker);
+        container.getChildren().addAll(title, row);
+
+        return container;
     }
 }
