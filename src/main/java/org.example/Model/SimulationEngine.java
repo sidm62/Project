@@ -1,6 +1,7 @@
 package org.example.Model;
 
 import javafx.application.Platform;
+import javafx.scene.shape.Circle;
 import org.example.Model.distributions.*;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -243,6 +244,8 @@ public class SimulationEngine {
         return debugMode;
     }
 
+    public boolean isRunning() {return running;}
+
     /**
      * Enables or disables debug mode.
      *
@@ -262,6 +265,10 @@ public class SimulationEngine {
      */
     public double getTimeScale() {
         return timeScale;
+    }
+
+    public double getServiceSpeedFactor() {
+        return serviceSpeedFactor;
     }
 
     /**
@@ -877,6 +884,12 @@ public class SimulationEngine {
         ============================== */
 
             case ARRIVAL_NORMAL_CHECKIN:
+                Platform.runLater(() ->
+                        AirportView.getInstance().animatePassengerToNextService(
+                                passenger,
+                                EventType.ARRIVAL_NORMAL_CHECKIN
+                        )
+                );
                 normalCheckin.handleArrival(passenger);
                 break;
 
@@ -890,6 +903,12 @@ public class SimulationEngine {
         ============================== */
 
             case ARRIVAL_SELF_CHECKIN:
+                Platform.runLater(() ->
+                        AirportView.getInstance().animatePassengerToNextService(
+                                passenger,
+                                EventType.ARRIVAL_SELF_CHECKIN
+                        )
+                );
                 selfCheckin.handleArrival(passenger);
                 break;
 
@@ -903,6 +922,12 @@ public class SimulationEngine {
         ============================== */
 
             case ARRIVAL_REGULAR_SECURITY:
+                Platform.runLater(() ->
+                        AirportView.getInstance().animatePassengerToNextService(
+                                passenger,
+                                EventType.ARRIVAL_REGULAR_SECURITY
+                        )
+                );
                 regularSecurity.handleArrival(passenger);
                 break;
 
@@ -916,6 +941,12 @@ public class SimulationEngine {
         ============================== */
 
             case ARRIVAL_FASTTRACK_SECURITY:
+                Platform.runLater(() ->
+                        AirportView.getInstance().animatePassengerToNextService(
+                                passenger,
+                                EventType.ARRIVAL_FASTTRACK_SECURITY
+                        )
+                );
                 fastTrackSecurity.handleArrival(passenger);
                 break;
 
@@ -929,6 +960,12 @@ public class SimulationEngine {
         ============================== */
 
             case ARRIVAL_CUSTOMS:
+                Platform.runLater(() ->
+                        AirportView.getInstance().animatePassengerToNextService(
+                                passenger,
+                                EventType.ARRIVAL_CUSTOMS
+                        )
+                );
                 customs.handleArrival(passenger);
                 break;
 
@@ -942,11 +979,27 @@ public class SimulationEngine {
         ============================== */
 
             case ARRIVAL_BOARDING:
+                Platform.runLater(() ->
+                        AirportView.getInstance().animatePassengerToNextService(
+                                passenger,
+                                EventType.ARRIVAL_BOARDING
+                        )
+                );
                 boarding.handleArrival(passenger);
                 break;
 
+            //case BOARDING_COMPLETE:
+            //    boarding.handleCompletion(passenger);
+            //    break;
+
             case BOARDING_COMPLETE:
                 boarding.handleCompletion(passenger);
+                Platform.runLater(() -> {
+                    Circle node = AirportView.getInstance().passengerNodes.remove(passenger.getId());
+                    if (node != null) {
+                        AirportView.getInstance().animationPane.getChildren().remove(node);
+                    }
+                });
                 break;
 
 
@@ -1171,6 +1224,10 @@ public class SimulationEngine {
                     next,
                     passenger
             ));
+
+            Platform.runLater(() ->
+                    AirportView.getInstance().animatePassengerToNextService(passenger, next)
+            );
         }
     }
 
@@ -1287,6 +1344,10 @@ public class SimulationEngine {
                     next,
                     passenger
             ));
+
+            Platform.runLater(() ->
+                    AirportView.getInstance().animatePassengerToNextService(passenger, next)
+            );
         }
     }
 
@@ -1416,6 +1477,10 @@ public class SimulationEngine {
                     nextArrival,
                     passenger
             ));
+
+            Platform.runLater(() ->
+                    AirportView.getInstance().animatePassengerToNextService(passenger, nextArrival)
+            );
         }
     }
 
@@ -1551,6 +1616,10 @@ public class SimulationEngine {
                     nextArrival,
                     passenger
             ));
+
+            Platform.runLater(() ->
+                    AirportView.getInstance().animatePassengerToNextService(passenger, nextArrival)
+            );
         }
     }
 
@@ -1676,6 +1745,10 @@ public class SimulationEngine {
                     EventType.ARRIVAL_BOARDING,
                     passenger
             ));
+
+            Platform.runLater(() ->
+                    AirportView.getInstance().animatePassengerToNextService(passenger, EventType.ARRIVAL_BOARDING)
+            );
         }
     }
 

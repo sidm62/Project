@@ -618,7 +618,8 @@ public abstract class ServicePoint {
                 );
             }
 
-            double serviceTime = sampleServiceTime(passenger);
+            // double serviceTime = sampleServiceTime(passenger);
+            double serviceTime = sampleServiceTime(passenger) / engine.getServiceSpeedFactor();
 
             engine.scheduleEvent(new Event(
                     Clock.getInstance().getTime() + serviceTime,
@@ -678,7 +679,8 @@ public abstract class ServicePoint {
 
             startService(next);
 
-            double nextServiceTime = sampleServiceTime(next);
+            // double nextServiceTime = sampleServiceTime(next);
+            double nextServiceTime = sampleServiceTime(next) / engine.getServiceSpeedFactor();
 
             engine.scheduleEvent(new Event(
                     Clock.getInstance().getTime() + nextServiceTime,

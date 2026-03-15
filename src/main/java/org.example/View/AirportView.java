@@ -35,6 +35,22 @@ import org.example.Model.*;
  */
 public class AirportView extends Application {
 
+
+    // Controls that need to be accessed across methods
+    private TextField boostField;
+    private ToggleButton stepToggle;
+    private Button nextBtn;
+    private ComboBox<String> quickBoostPicker;
+    private Button startBtn;
+    private Spinner<Double> durationSpinner;
+    private Button replayBtn;
+    private Slider timeScaleSlider;
+    private Slider walkSlider;
+    private Slider arrivalSlider;
+    private ComboBox<Scenario> scenarioChooser;
+
+
+
     /**
      * Shared simulation engine instance used by the view.
      */
@@ -58,7 +74,7 @@ public class AirportView extends Application {
     /**
      * Pane where passenger animations are displayed.
      */
-    private Pane animationPane;
+    public Pane animationPane;
 
     /**
      * Text area for showing simulation info and messages.
@@ -90,7 +106,6 @@ public class AirportView extends Application {
 
     private double serviceBoost = 1.0;
 
-    private static final double BOOST_STEP = 0.1;
     private static final double MIN_BOOST = 0.5; // fastest allowed
     private static final double MAX_BOOST = 1.0; // normal speed
 
@@ -145,7 +160,7 @@ public class AirportView extends Application {
         return instance;
     }
 
-    private Map<Integer, Circle> passengerNodes = new HashMap<>();
+    public Map<Integer, Circle> passengerNodes = new HashMap<>();
 
     /**
      * Initializes the JavaFX stage, sets up the scene and animation pane,
@@ -168,6 +183,8 @@ public class AirportView extends Application {
         root.setCenter(animationPane);
         createServicePoints();
         createBottomPanel(root);
+
+        setControlsForSimulation(false);
 
         Scene scene = new Scene(root, 1100, 850);
         stage.setTitle("Airport Simulation - Visualizer (MVC)");
@@ -213,16 +230,37 @@ public class AirportView extends Application {
         return sp;
     }
 
+    private void runIfCurrentEngine(SimulationEngine callbackEngine, Runnable guiAction) {
+        Platform.runLater(() -> {
+            if (callbackEngine == engine) {
+                guiAction.run();
+            }
+        });
+    }
+
     /**
      * Animates a single passenger on the UI.
      *
      * @param p the passenger to animate
      */
+
+    /*
     public static void animateSinglePassenger(Passenger p) {
         if (instance != null) {
+            SimulationEngine currentEngine = instance.getEngine();
             Platform.runLater(() -> instance.createPassengerAnimation(p));
         }
     }
+
+     */
+
+    public static void animateSinglePassenger(Passenger p) {
+        if (instance != null) {
+            SimulationEngine currentEngine = instance.getEngine();
+            instance.runIfCurrentEngine(currentEngine, () -> instance.createPassengerAnimation(p));
+        }
+    }
+
 
     /**
      * Creates the animation for a passenger.
@@ -238,7 +276,7 @@ public class AirportView extends Application {
 
         animationPane.getChildren().add(node);
         passengerNodes.put(p.getId(), node);
-        animateStep(p, node, 0);
+        // animateStep(p, node, 0);
     }
 
     /**
@@ -316,7 +354,117 @@ public class AirportView extends Application {
         move.play();
     }
 
+    /*
+
+
+    public void animatePassengerArrival(Passenger p) {
+
+        if (engine == null) return;
+
+        SimulationEngine callbackEngine = engine;
+
+        runIfCurrentEngine(callbackEngine, () -> {
+
+            // Prevent duplicate creation
+            if (passengerNodes.containsKey(p.getId())) return;
+
+            Color passengerColor =
+                    (p.getTicketType() == TicketType.ECONOMY)
+                            ? Color.RED
+                            : Color.BLUE;
+
+            Circle node = new Circle(7, passengerColor);
+            node.setStroke(Color.BLACK);
+
+            // Spawn slightly outside airport for entry animation
+            node.setLayoutX(START_X - 40);
+            node.setLayoutY(START_Y);
+
+            animationPane.getChildren().add(node);
+            passengerNodes.put(p.getId(), node);
+
+            double duration = Math.max(engine.getTimeScale() / 1000.0, 0.25);
+
+            TranslateTransition entry = new TranslateTransition(Duration.seconds(duration), node);
+            entry.setToX(40); // move into airport start position
+            entry.setToY(0);
+
+            entry.play();
+        });
+    }
+
+     */
+
+
     public void animatePassengerToNextService(Passenger p, EventType nextEvent) {
+
+        if (engine == null) return;
+
+        SimulationEngine callbackEngine = engine; // capture engine
+
+        runIfCurrentEngine(callbackEngine, () -> {
+            Circle node = passengerNodes.get(p.getId());
+            if (node == null) return;
+
+            double targetX = START_X;
+            double targetY = START_Y;
+
+            switch (nextEvent) {
+
+                case ARRIVAL_NORMAL_CHECKIN:
+                    targetX = 150 + 60;
+                    targetY = 180 + 30;
+                    break;
+
+                case ARRIVAL_SELF_CHECKIN:
+                    targetX = 150 + 60;
+                    targetY = 320 + 30;
+                    break;
+
+                case ARRIVAL_REGULAR_SECURITY:
+                    targetX = 400 + 60;
+                    targetY = 180 + 30;
+                    break;
+
+                case ARRIVAL_FASTTRACK_SECURITY:
+                    targetX = 400 + 60;
+                    targetY = 320 + 30;
+                    break;
+
+                case ARRIVAL_CUSTOMS:
+                    targetX = 600 + 60;
+                    targetY = 250 + 30;
+                    break;
+
+                case ARRIVAL_BOARDING:
+                    targetX = 800 + 60;
+                    targetY = 250 + 30;
+                    break;
+            }
+
+            double duration = Math.max(engine.getTimeScale() / 1000.0, 0.25);
+
+            TranslateTransition move = new TranslateTransition(Duration.seconds(duration), node);
+
+            double currentX = node.getTranslateX();
+            double currentY = node.getTranslateY();
+
+            move.setToX(currentX + (targetX - (START_X + currentX)));
+            move.setToY(currentY + (targetY - (START_Y + currentY)));
+
+            move.play();
+
+
+        });
+    }
+
+
+
+    /*public void animatePassengerToNextService(Passenger p, EventType nextEvent) {
+
+        if (engine == null) return;
+
+        SimulationEngine callbackEngine = engine; // capture engine
 
         Platform.runLater(() -> {
 
@@ -362,11 +510,18 @@ public class AirportView extends Application {
             double duration = Math.max(engine.getTimeScale() / 1000.0, 0.25);
 
             TranslateTransition move = new TranslateTransition(Duration.seconds(duration), node);
-            move.setToX(targetX - START_X);
-            move.setToY(targetY - START_Y);
+            double currentX = node.getTranslateX();
+            double currentY = node.getTranslateY();
+
+            move.setToX(currentX + (targetX - (START_X + currentX)));
+            move.setToY(currentY + (targetY - (START_Y + currentY)));
             move.play();
         });
-    }
+    } */ // <--- animatePassengerToNextService
+
+
+
+
 
 
     /**
@@ -390,43 +545,81 @@ public class AirportView extends Application {
         sliderGrid.setHgap(30);
         sliderGrid.setVgap(10);
 
+
+        // Base animation duration (seconds) for reference
+        double baseAnimationDuration = 0.5; // default 0.5s per move
+
+        /*
+
+        // Slider goes from 0.5× speed (slower) to 2× speed (faster)
+        timeScaleSlider = new Slider(0.5, 2.0, 1.0);
+        timeScaleSlider.setShowTickLabels(true);
+        timeScaleSlider.setShowTickMarks(true);
+        timeScaleSlider.setMajorTickUnit(0.5);
+        timeScaleSlider.setMinorTickCount(4);
+        timeScaleSlider.setBlockIncrement(0.1);
+
+        // Add labels for clarity
+        timeScaleSlider.setLabelFormatter(new StringConverter<Double>() {
+            @Override
+            public String toString(Double value) {
+                if (value <= 0.5) return "Slower";
+                else if (value >= 2.0) return "Faster";
+                else return String.format("%.1fx", value);
+            }
+
+            @Override
+            public Double fromString(String string) {
+                return 1.0; // not used
+            }
+        });
+
+         */
+
+
+
         // Animation Delay
         double defaultTimeScale = (engine != null) ? engine.getTimeScale() : 500;
-        Slider timeScaleSlider = new Slider(100, 2000, defaultTimeScale);
+        timeScaleSlider = new Slider(100, 2000, defaultTimeScale);
         timeScaleSlider.valueProperty().addListener((obs, old, val) -> {
-            if (engine != null) engine.setTimeScale(val.doubleValue());
+            SimulationEngine callbackEngine = engine;
+            runIfCurrentEngine(callbackEngine, () -> engine.setTimeScale(val.doubleValue()));
         });
         sliderGrid.add(new Label("Animation delay (ms):"), 0, 0);
         sliderGrid.add(timeScaleSlider, 1, 0);
 
         // Walking Speed
         double defaultWalkSpeed = (engine != null) ? engine.getTraversalSpeedFactor() : 1.0;
-        Slider walkSlider = new Slider(0.5, 2.0, defaultWalkSpeed);
+        walkSlider = new Slider(0.5, 2.0, defaultWalkSpeed);
         walkSlider.valueProperty().addListener((obs, old, val) -> {
-            if (engine != null) {
+            SimulationEngine callbackEngine = engine;
+            runIfCurrentEngine(callbackEngine, () -> {
                 try {
                     engine.setTraversalSpeedFactor(val.doubleValue());
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-            }
+            });
+
         });
         sliderGrid.add(new Label("Walking speed (factor):"), 0, 1);
         sliderGrid.add(walkSlider, 1, 1);
 
-        // Passenger Flow
+
+        // Passenger Flow Slider
         double defaultArrival = (engine != null) ? engine.getArrivalSpeedFactor() : 1.0;
-        Slider arrivalSlider = new Slider(0.5, 2.0, defaultArrival);
+        arrivalSlider = new Slider(0.5, 2.0, defaultArrival);
         arrivalSlider.valueProperty().addListener((obs, old, val) -> {
-            if (engine != null) {
+            SimulationEngine callbackEngine = engine; // capture the current engine
+
+            runIfCurrentEngine(callbackEngine, () -> {
                 try {
                     engine.setArrivalSpeedFactor(val.doubleValue());
                 } catch (Exception ex) {
-                    Platform.runLater(() -> {
-                        arrivalSlider.setValue(old.doubleValue());
-                        infoArea.appendText("!!! BLOCKED: Load too high.\n");
-                    });
+                    arrivalSlider.setValue(old.doubleValue());
+                    infoArea.appendText("!!! BLOCKED: Load too high.\n");
                 }
-            }
+            });
         });
         sliderGrid.add(new Label("Passenger flow (factor):"), 2, 0);
         sliderGrid.add(arrivalSlider, 3, 0);
@@ -434,11 +627,14 @@ public class AirportView extends Application {
         // Duration Spinner
         Label durationLabel = new Label("Simulation duration:");
         double defaultDuration = (engine != null) ? engine.getSimulationEndTime() : 100.0;
-        Spinner<Double> durationSpinner = new Spinner<>(100.0, 10000.0, defaultDuration, 100.0);
+        durationSpinner = new Spinner<>(100.0, 10000.0, defaultDuration, 100.0);
         durationSpinner.setEditable(true);
         durationSpinner.setPrefWidth(100);
         durationSpinner.valueProperty().addListener((obs, old, val) -> {
-            if (engine != null) engine.setSimulationEndTime(val);
+            SimulationEngine callbackEngine = engine; // capture current engine
+            runIfCurrentEngine(callbackEngine, () -> {
+                engine.setSimulationEndTime(val);
+            });
         });
         sliderGrid.add(durationLabel, 2, 1);
         sliderGrid.add(durationSpinner, 3, 1);
@@ -447,7 +643,7 @@ public class AirportView extends Application {
         HBox controls = new HBox(15);
         controls.setAlignment(Pos.CENTER_LEFT);
 
-        ComboBox<Scenario> scenarioChooser = new ComboBox<>();
+        scenarioChooser = new ComboBox<>();
         scenarioChooser.getItems().addAll(Scenario.values());
         scenarioChooser.setValue(Scenario.NORMAL);
         scenarioChooser.setOnAction(e -> {
@@ -457,29 +653,30 @@ public class AirportView extends Application {
             }
         });
 
-        Button startBtn = new Button("Start Simulation ▶");
+        startBtn = new Button("Start Simulation ▶");
         startBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        ToggleButton stepToggle = new ToggleButton("Step Mode");
-        Button nextBtn = new Button("Next Event >>");
+        stepToggle = new ToggleButton("Step Mode");
+        nextBtn = new Button("Next Event >>");
         nextBtn.setDisable(true);
 
-        Button boostMinusBtn = new Button("−");
-        Button boostPlusBtn = new Button("+");
+       // Button boostMinusBtn = new Button("−");
+       //  Button boostPlusBtn = new Button("+");
 
-        Label boostLabel = new Label("Staff Boost: +0%");
+       //  boostMinusBtn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white;");
+       // boostPlusBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
 
-        boostMinusBtn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white;");
-        boostPlusBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        Label boostLabel = new Label("Staff Boost +0-20%:");
+        boostField = new TextField(String.format("%.2f", serviceBoost));
+        boostField.setPrefWidth(60);
 
-        ToggleButton boostToggle = new ToggleButton("Staff Boost (Turbo)");
-        boostToggle.setStyle("-fx-font-weight: bold; -fx-base: #2ecc71;");
 
-        Button replayBtn = new Button("Reset ↺");
+
+        replayBtn = new Button("Reset ↺");
         replayBtn.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;");
 
         // --- UUSI: PIKATEHOSTUS-VALIKKO (Kuten skenaariovalinta) ---
-        ComboBox<String> quickBoostPicker = new ComboBox<>();
+        quickBoostPicker = new ComboBox<>();
         quickBoostPicker.getItems().addAll(
                 "Normal Check-in", "Self Check-in",
                 "Regular Security", "Fast Track",
@@ -492,11 +689,12 @@ public class AirportView extends Application {
             String selected = quickBoostPicker.getValue();
             if (selected != null && config != null) {
                 config.setIndividualServiceSpeedFactors(selected, 1.2); // +20% tehostus
-                infoArea.appendText(">>> QUICK BOOST: " + selected + " activated (+20%)\n");
+                infoArea.appendText(">>> QUICK BOOST: " + selected + " set to (+20%)\n");
                 // Tyhjennetään valinta, jotta se on heti valmis uuteen valintaan
                 Platform.runLater(() -> quickBoostPicker.setValue(null));
             }
         });
+
 
         // --- ACTIONS ---
         startBtn.setOnAction(e -> {
@@ -509,87 +707,12 @@ public class AirportView extends Application {
             infoArea.appendText(">>> Simulation starting! (Duration: " + durationSpinner.getValue() + "s)\n");
             startBtn.setDisable(true);
             durationSpinner.setDisable(true);
+            setControlsForSimulation(true);
             controller.startSimulation(durationSpinner.getValue());
         });
 
-
-        boostPlusBtn.setOnAction(e -> {
-
-            if (engine == null) return;
-
-            if (serviceBoost - BOOST_STEP >= MIN_BOOST) {
-                serviceBoost -= BOOST_STEP;
-            }
-
-            try {
-                engine.setServiceSpeedFactor(serviceBoost);
-            } catch (Exception ex) {
-                infoArea.appendText("!!! Failed to apply service boost.\n");
-                return;
-            }
-
-            int boostPercent = (int) ((1 - serviceBoost) * 100);
-
-            boostLabel.setText(String.format("Staff Boost: %d%%", boostPercent));
-
-            infoArea.appendText(
-                    String.format(">>> BOOST INCREASED → +%d%% service speed\n", boostPercent)
-            );
-        });
-
-
-        boostMinusBtn.setOnAction(e -> {
-
-            if (engine == null) return;
-
-            if (serviceBoost + BOOST_STEP <= MAX_BOOST) {
-                serviceBoost += BOOST_STEP;
-            }
-
-            try {
-                engine.setServiceSpeedFactor(serviceBoost);
-            } catch (Exception ex) {
-                infoArea.appendText("!!! Failed to apply service boost.\n");
-                return;
-            }
-
-            int boostPercent = (int) ((1 - serviceBoost) * 100);
-
-            boostLabel.setText(String.format("Staff Boost: %d%%", boostPercent));
-
-            infoArea.appendText(
-                    String.format(">>> BOOST DECREASED → +%d%% service speed\n", boostPercent)
-            );
-        });
-
-
-        boostToggle.setOnAction(e -> {
-            double factor = boostToggle.isSelected() ? 0.6 : 1.0;
-            if (engine != null) {
-                try {
-                    engine.setServiceSpeedFactor(factor);
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-            boostToggle.setStyle(boostToggle.isSelected() ? "-fx-font-weight: bold; -fx-base: #e74c3c; -fx-text-fill: white;" : "-fx-font-weight: bold; -fx-base: #2ecc71;");
-            infoArea.appendText(boostToggle.isSelected() ? ">>> STAFF BOOST activated.\n" : ">>> STAFF BOOST deactivated.\n");
-        });
-
-        stepToggle.setOnAction(e -> {
-            boolean active = stepToggle.isSelected();
-            if (engine != null) engine.setStepMode(active);
-            nextBtn.setDisable(!active);
-            if (!active) releaseWaitingPassengers();
-        });
-
-        nextBtn.setOnAction(e -> {
-            if (engine != null) engine.requestNextStep();
-            releaseWaitingPassengers();
-        });
-
         replayBtn.setOnAction(e -> {
-            if (engine != null) engine.stopSimulation();
+            if (engine != null) {engine.stopSimulation(); engine = null;}
             animationPane.getChildren().removeIf(n -> n instanceof Circle);
             infoArea.clear();
             passengerTableView.getItems().clear();
@@ -597,7 +720,11 @@ public class AirportView extends Application {
             systemTableView.getItems().clear();
             waitingPassengers.clear();
 
+            setControlsForSimulation(false);
+
+            // Reset boost
             serviceBoost = 1.0;
+            boostField.setText("0"); // sync field
             boostLabel.setText("Staff Boost: +0%");
 
 
@@ -619,15 +746,55 @@ public class AirportView extends Application {
             infoArea.appendText(">>> Reset complete. Ready for new run.\n");
         });
 
+        // Initialize boostField at start
+        boostField.setText("0"); // 0% boost = normal speed
+        serviceBoost = 1.0;
+
+        boostField.setOnAction(e -> {
+            if (engine == null) return;
+
+            try {
+                double input = Double.parseDouble(boostField.getText());
+                if (input < 0) input = 0;
+                if (input > 50) input = 50;// max 50% faster
+
+                serviceBoost = 1.0 + (input / 100.0);
+                engine.setServiceSpeedFactor(serviceBoost);
+
+                boostField.setText(String.valueOf((int)input));
+                infoArea.appendText(String.format(">>> Staff Boost set to +%d%%\n", (int)input));
+            } catch (NumberFormatException ex) {
+                // Reset to last valid value
+                int currentPercent = (int) ((serviceBoost - 1.0) * 100);
+                boostField.setText(String.valueOf(currentPercent));
+                infoArea.appendText("!!! Invalid input. Enter a valid number. \n");
+            } catch (Exception ex) {
+                infoArea.appendText("!!! Failed to apply service boost.\n");
+            }
+        });
+
+
+        stepToggle.setOnAction(e -> {
+            boolean active = stepToggle.isSelected();
+            if (engine != null) engine.setStepMode(active);
+            nextBtn.setDisable(!active);
+            if (!active) releaseWaitingPassengers();
+        });
+
+        nextBtn.setOnAction(e -> {
+            if (engine != null) engine.requestNextStep();
+            releaseWaitingPassengers();
+        });
+
+
         // Kokoa kontrollit riviin
         controls.getChildren().addAll(
                 new Label("Scenario:"), scenarioChooser,
                 startBtn,
                 stepToggle,
                 nextBtn,
-                boostMinusBtn,
                 boostLabel,
-                boostPlusBtn,
+                boostField,
                 replayBtn,
                 new Separator(Orientation.VERTICAL),
                 new Label("Quick Boost:"), quickBoostPicker
@@ -661,51 +828,33 @@ public class AirportView extends Application {
         root.setBottom(bottom);
     }
 
-    /**
-     * Releases all passengers waiting in Step Mode.
-     */
-    private void releaseWaitingPassengers() {
-        new ArrayList<>(waitingPassengers.values()).forEach(Runnable::run);
-        waitingPassengers.clear();
+    private void setControlsForSimulation(boolean running) {
+
+        // Start button enabled only when simulation is NOT running
+        // startBtn.setDisable(running);
+
+        // Step mode & next event
+        stepToggle.setDisable(!running);
+        nextBtn.setDisable(!running);
+
+        // Replay/reset button enabled only when simulation is running (optional)
+        // replayBtn.setDisable(!running);
+
+        // Staff boost controls
+        boostField.setDisable(!running);
+        quickBoostPicker.setDisable(!running);
+
     }
 
     /**
-     * Displays information about a passenger in the info area.
-     *
-     * @param p the passenger whose info to display
+     * Releases all passengers waiting in Step Mode.
      */
 
-    /*
-
-
-    public void showPassengerInfo(Passenger p) {
-        Platform.runLater(() -> {
-            infoArea.appendText(String.format("[%03d] %s | Finished at: %.1f\n",
-                    p.getId(), p.getTicketType(), Clock.getInstance().getTime()));
-            infoArea.setScrollTop(Double.MAX_VALUE);
-        });
-}
-
-     */
-
-    public void showPassengerInfo(Passenger p) {
-
-        double time = Clock.getInstance().getTime();
-        boolean draining = time > engine.getSimulationEndTime();
-
-        Platform.runLater(() -> {
-
-            if (draining) {
-                infoArea.appendText(String.format(
-                        "[%03d] %s | Finished at: %.1f (DRAINING)\n",
-                        p.getId(), p.getTicketType(), time));
-            } else {
-                infoArea.appendText(String.format(
-                        "[%03d] %s | Finished at: %.1f\n",
-                        p.getId(), p.getTicketType(), time));
-            }
-
-            infoArea.setScrollTop(Double.MAX_VALUE);
+    private void releaseWaitingPassengers() {
+        SimulationEngine callbackEngine = engine;
+        runIfCurrentEngine(callbackEngine, () -> {
+            new ArrayList<>(waitingPassengers.values()).forEach(Runnable::run);
+            waitingPassengers.clear();
         });
     }
 
@@ -720,7 +869,11 @@ public class AirportView extends Application {
      * @param validationError average validation error in percent
      */
     public void showFinalResults(double avgTime, int totalCompleted, double validationError) {
+
         Platform.runLater(() -> {
+            if (engine == null) {
+                return;
+            }
             infoArea.appendText("\n" + "=".repeat(45) + "\n");
             infoArea.appendText("       SIMULATION RESULTS\n");
             infoArea.appendText(String.format(" Completed passengers: %d\n", totalCompleted));
@@ -733,6 +886,8 @@ public class AirportView extends Application {
 
             infoArea.appendText("=".repeat(45) + "\n");
             infoArea.setScrollTop(Double.MAX_VALUE);
+
+            setControlsForSimulation(false);
         });
     }
     public void updateTableFromCSV(String filename, TableView<String[]> table) {
