@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.ArrayList;
 
 
+import javafx.util.StringConverter;
 import org.example.Controller.AirportController;
 import org.example.Model.*;
 
@@ -191,6 +192,7 @@ public class AirportView extends Application {
         stage.setScene(scene);
         stage.show();
 
+        infoArea.setEditable(false);
         infoArea.appendText(">>> System ready. Set duration and press Start.\n");
     }
 
@@ -395,7 +397,6 @@ public class AirportView extends Application {
 
      */
 
-
     public void animatePassengerToNextService(Passenger p, EventType nextEvent) {
 
         if (engine == null) return;
@@ -460,64 +461,7 @@ public class AirportView extends Application {
 
 
 
-    /*public void animatePassengerToNextService(Passenger p, EventType nextEvent) {
 
-        if (engine == null) return;
-
-        SimulationEngine callbackEngine = engine; // capture engine
-
-        Platform.runLater(() -> {
-
-            Circle node = passengerNodes.get(p.getId());
-            if (node == null) return;
-
-            double targetX = START_X;
-            double targetY = START_Y;
-
-            switch (nextEvent) {
-
-                case ARRIVAL_NORMAL_CHECKIN:
-                    targetX = 150 + 60;
-                    targetY = 180 + 30;
-                    break;
-
-                case ARRIVAL_SELF_CHECKIN:
-                    targetX = 150 + 60;
-                    targetY = 320 + 30;
-                    break;
-
-                case ARRIVAL_REGULAR_SECURITY:
-                    targetX = 400 + 60;
-                    targetY = 180 + 30;
-                    break;
-
-                case ARRIVAL_FASTTRACK_SECURITY:
-                    targetX = 400 + 60;
-                    targetY = 320 + 30;
-                    break;
-
-                case ARRIVAL_CUSTOMS:
-                    targetX = 600 + 60;
-                    targetY = 250 + 30;
-                    break;
-
-                case ARRIVAL_BOARDING:
-                    targetX = 800 + 60;
-                    targetY = 250 + 30;
-                    break;
-            }
-
-            double duration = Math.max(engine.getTimeScale() / 1000.0, 0.25);
-
-            TranslateTransition move = new TranslateTransition(Duration.seconds(duration), node);
-            double currentX = node.getTranslateX();
-            double currentY = node.getTranslateY();
-
-            move.setToX(currentX + (targetX - (START_X + currentX)));
-            move.setToY(currentY + (targetY - (START_Y + currentY)));
-            move.play();
-        });
-    } */ // <--- animatePassengerToNextService
 
 
 
@@ -545,42 +489,16 @@ public class AirportView extends Application {
         sliderGrid.setHgap(30);
         sliderGrid.setVgap(10);
 
-
-        // Base animation duration (seconds) for reference
-        double baseAnimationDuration = 0.5; // default 0.5s per move
-
-        /*
-
-        // Slider goes from 0.5× speed (slower) to 2× speed (faster)
-        timeScaleSlider = new Slider(0.5, 2.0, 1.0);
-        timeScaleSlider.setShowTickLabels(true);
-        timeScaleSlider.setShowTickMarks(true);
-        timeScaleSlider.setMajorTickUnit(0.5);
-        timeScaleSlider.setMinorTickCount(4);
-        timeScaleSlider.setBlockIncrement(0.1);
-
-        // Add labels for clarity
-        timeScaleSlider.setLabelFormatter(new StringConverter<Double>() {
-            @Override
-            public String toString(Double value) {
-                if (value <= 0.5) return "Slower";
-                else if (value >= 2.0) return "Faster";
-                else return String.format("%.1fx", value);
-            }
-
-            @Override
-            public Double fromString(String string) {
-                return 1.0; // not used
-            }
-        });
-
-         */
-
-
-
         // Animation Delay
         double defaultTimeScale = (engine != null) ? engine.getTimeScale() : 500;
         timeScaleSlider = new Slider(100, 2000, defaultTimeScale);
+
+        timeScaleSlider.setShowTickLabels(true);
+        timeScaleSlider.setShowTickMarks(true);
+        timeScaleSlider.setMajorTickUnit(500);
+        timeScaleSlider.setMinorTickCount(4);
+        timeScaleSlider.setBlockIncrement(100);
+
         timeScaleSlider.valueProperty().addListener((obs, old, val) -> {
             SimulationEngine callbackEngine = engine;
             runIfCurrentEngine(callbackEngine, () -> engine.setTimeScale(val.doubleValue()));
@@ -588,9 +506,20 @@ public class AirportView extends Application {
         sliderGrid.add(new Label("Animation delay (ms):"), 0, 0);
         sliderGrid.add(timeScaleSlider, 1, 0);
 
+
+
         // Walking Speed
         double defaultWalkSpeed = (engine != null) ? engine.getTraversalSpeedFactor() : 1.0;
         walkSlider = new Slider(0.5, 2.0, defaultWalkSpeed);
+
+        walkSlider.setShowTickLabels(true);
+        walkSlider.setShowTickMarks(true);
+        walkSlider.setMajorTickUnit(0.5);
+        walkSlider.setMinorTickCount(4);
+        walkSlider.setBlockIncrement(0.1);
+        walkSlider.setSnapToTicks(true);
+
+
         walkSlider.valueProperty().addListener((obs, old, val) -> {
             SimulationEngine callbackEngine = engine;
             runIfCurrentEngine(callbackEngine, () -> {
@@ -608,7 +537,15 @@ public class AirportView extends Application {
 
         // Passenger Flow Slider
         double defaultArrival = (engine != null) ? engine.getArrivalSpeedFactor() : 1.0;
-        arrivalSlider = new Slider(0.5, 2.0, defaultArrival);
+        arrivalSlider = new Slider(0.5, 1.2, defaultArrival);
+
+        arrivalSlider.setShowTickLabels(true);
+        arrivalSlider.setShowTickMarks(true);
+        arrivalSlider.setMajorTickUnit(0.2);
+        arrivalSlider.setMinorTickCount(1);
+        arrivalSlider.setBlockIncrement(0.1);
+        arrivalSlider.setSnapToTicks(true);
+
         arrivalSlider.valueProperty().addListener((obs, old, val) -> {
             SimulationEngine callbackEngine = engine; // capture the current engine
 
@@ -639,6 +576,7 @@ public class AirportView extends Application {
         sliderGrid.add(durationLabel, 2, 1);
         sliderGrid.add(durationSpinner, 3, 1);
 
+
         // --- HBOX: CONTROLS (Painikkeet ja Uusi Valikko) ---
         HBox controls = new HBox(15);
         controls.setAlignment(Pos.CENTER_LEFT);
@@ -660,16 +598,9 @@ public class AirportView extends Application {
         nextBtn = new Button("Next Event >>");
         nextBtn.setDisable(true);
 
-       // Button boostMinusBtn = new Button("−");
-       //  Button boostPlusBtn = new Button("+");
-
-       //  boostMinusBtn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white;");
-       // boostPlusBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
-
         Label boostLabel = new Label("Staff Boost +0-20%:");
         boostField = new TextField(String.format("%.2f", serviceBoost));
         boostField.setPrefWidth(60);
-
 
 
         replayBtn = new Button("Reset ↺");
@@ -699,7 +630,20 @@ public class AirportView extends Application {
         // --- ACTIONS ---
         startBtn.setOnAction(e -> {
             engine = new SimulationEngine(durationSpinner.getValue(), config);
-            engine.setDebugMode(false);
+
+            // Apply GUI parameters to the engine
+            try {
+                engine.setTimeScale(timeScaleSlider.getValue());
+                engine.setTraversalSpeedFactor(walkSlider.getValue());
+                engine.setArrivalSpeedFactor(arrivalSlider.getValue());
+                engine.setServiceSpeedFactor(serviceBoost);
+                engine.setSimulationEndTime(durationSpinner.getValue());
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+
+
+            engine.setDebugMode(true);
             engine.setSpeedMultiplier(5.0);
             engine.scheduleEvent(new Event(0.0, EventType.ARRIVAL_SYSTEM, new Passenger(engine)));
             setEngine(engine);
@@ -726,6 +670,8 @@ public class AirportView extends Application {
             serviceBoost = 1.0;
             boostField.setText("0"); // sync field
             boostLabel.setText("Staff Boost: +0%");
+            timeScaleSlider.setValue(500);
+            infoArea.appendText(">>> Animation delay reset to default (500 ms)\n");
 
 
             // Reset simulation globals
@@ -823,9 +769,19 @@ public class AirportView extends Application {
         tabPane.getTabs().addAll(logTab, passTab, spTab, sysTab);
 
         // --- KOKOAMINEN ---
-        // Huom: Poistin 'speedTuning' -osan, koska valikko on nyt 'controls' -rivissä
+
         bottom.getChildren().addAll(sliderGrid, controls, tabPane);
-        root.setBottom(bottom);
+
+        ScrollPane scroll = new ScrollPane(bottom);
+        scroll.setFitToWidth(true);          // make it expand horizontally
+        scroll.setPrefHeight(300);          // max visible height, adjust as needed
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+
+        root.setBottom(scroll);
+
+
+        // Huom: Poistin 'speedTuning' -osan, koska valikko on nyt 'controls' -rivissä
     }
 
     private void setControlsForSimulation(boolean running) {
@@ -834,15 +790,33 @@ public class AirportView extends Application {
         // startBtn.setDisable(running);
 
         // Step mode & next event
-        stepToggle.setDisable(!running);
-        nextBtn.setDisable(!running);
+        //stepToggle.setDisable(!running);
+        //nextBtn.setDisable(!running);
 
         // Replay/reset button enabled only when simulation is running (optional)
         // replayBtn.setDisable(!running);
 
         // Staff boost controls
-        boostField.setDisable(!running);
-        quickBoostPicker.setDisable(!running);
+        //boostField.setDisable(!running);
+        //quickBoostPicker.setDisable(!running);
+
+        // Step controls
+        stepToggle.setDisable(!running);
+        nextBtn.setDisable(!running);
+
+        // Staff controls
+        boostField.setEditable(running);
+
+        // Sliders
+        timeScaleSlider.setMouseTransparent(!running);
+        walkSlider.setMouseTransparent(!running);
+        arrivalSlider.setMouseTransparent(!running);
+
+        // Spinner
+        durationSpinner.setEditable(running);
+
+        scenarioChooser.setMouseTransparent(!running);
+        quickBoostPicker.setMouseTransparent(!running);
 
     }
 

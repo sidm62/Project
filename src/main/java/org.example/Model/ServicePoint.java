@@ -175,6 +175,9 @@ public abstract class ServicePoint {
     protected ContinuousGenerator serviceGenerator;
 
 
+    private double baseMeanTime; // raw mean time
+    private double effectiveMeanTime; // after factor applied
+
     /**
      * Creates a new service point.
      *
@@ -204,6 +207,12 @@ public abstract class ServicePoint {
         this.baseServiceMean = engine.getConfiguration().getServiceMeanFor(servicePointName);
         this.currentServiceMean = baseServiceMean;
 
+
+
+    }
+
+    public double getBaseServiceMean() {
+        return baseServiceMean;
     }
 
     /**
@@ -214,6 +223,7 @@ public abstract class ServicePoint {
      *
      * @param newBaseMean new base service mean
      */
+
     public void updateBaseServiceMean(double newBaseMean) {
         this.baseServiceMean = newBaseMean;
 

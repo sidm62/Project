@@ -39,27 +39,27 @@ public class SimulationEngine {
     /**
      * Service point for normal check-in.
      */
-    private NormalCheckin normalCheckin;
+    public NormalCheckin normalCheckin;
     /**
      * Service point for self check-in.
      */
-    private SelfCheckin selfCheckin;
+    public SelfCheckin selfCheckin;
     /**
      * Service point for regular security screening.
      */
-    private RegularSecurity regularSecurity;
+    public RegularSecurity regularSecurity;
     /**
      * Service point for fast track security screening.
      */
-    private FastTrackSecurity fastTrackSecurity;
+    public FastTrackSecurity fastTrackSecurity;
     /**
      * Service point for customs processing.
      */
-    private Customs customs;
+    public Customs customs;
     /**
      * Service point for boarding.
      */
-    private Boarding boarding;
+    public Boarding boarding;
     /**
      * Base random seed used to initialize the simulation generators.
      */
@@ -289,7 +289,7 @@ public class SimulationEngine {
      */
     public void setSimulationEndTime(double simulationEndTime) {
         this.simulationEndTime = simulationEndTime;
-        if (debugMode) System.out.println("Uusi simulaation kesto on asetettu: " + timeScale);
+        if (debugMode) System.out.println("Uusi simulaation kesto on asetettu: " + simulationEndTime);
     }
 
 

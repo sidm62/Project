@@ -149,6 +149,50 @@ public class Configuration {
         return individualServiceSpeedFactors.getOrDefault(pointName, 1.0);
     }
 
+
+    private HashMap<String, Double> serviceMeans = new HashMap<>();
+    private HashMap<String, Double> serviceStdDevs = new HashMap<>();
+
+    private HashMap<String, Double> traversalMeans = new HashMap<>();
+    private HashMap<String, Double> traversalStdDevs = new HashMap<>();
+
+    public void setServiceMean(String service, double mean) {
+        serviceMeans.put(service, mean);
+    }
+
+    public double getServiceMean(String service) {
+        return serviceMeans.getOrDefault(service, 1.0);
+    }
+
+    public void setServiceStdDev(String service, double sd) {
+        serviceStdDevs.put(service, sd);
+    }
+
+    public double getServiceStdDev(String service) {
+        return serviceStdDevs.getOrDefault(service, 0.2);
+    }
+
+
+    public void setTraversalMean(String transition, double mean) {
+        traversalMeans.put(transition, mean);
+    }
+
+    public double getTraversalMean(String transition) {
+        return traversalMeans.getOrDefault(transition, 0.5);
+    }
+
+    public void setTraversalStdDev(String transition, double sd) {
+        traversalStdDevs.put(transition, sd);
+    }
+
+    public double getTraversalStdDev(String transition) {
+        return traversalStdDevs.getOrDefault(transition, 0.1);
+    }
+
+
+
+
+
     // =========================
     // SCALING FACTORS
     // =========================
