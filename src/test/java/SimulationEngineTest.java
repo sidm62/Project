@@ -20,7 +20,7 @@ class SimulationEngineTest {
     @Test
     @DisplayName("Kertoimien validointi: Load ratio ei saa ylittyä")
     void testLoadRatioValidation() {
-        // Testataan, että liian suuri matkustajavirta suhteessa palveluun heittää poikkeuksen
+
         assertThrows(Exception.class, () -> {
             engine.setServiceSpeedFactor(1.5); // Palvelu hitaaksi (kerroin 2.0)
             engine.setArrivalSpeedFactor(2.0);  // Saapuminen nopeaksi (kerroin 2.0)
