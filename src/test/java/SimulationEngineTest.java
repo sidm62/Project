@@ -8,33 +8,59 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
+/**
+ * Unit tests for the {@link SimulationEngine} class.
+ * Focuses on system stability, parameter validation, and the correct
+ * resetting of the simulation state between runs.
+ */
 class SimulationEngineTest {
     private SimulationEngine engine;
 
+    /**
+     * Initializes the simulation engine before each test.
+     * Sets up a default simulation duration and configuration to provide
+     * a consistent baseline for testing engine logic.
+     */
     @BeforeEach
     void setUp() {
         Configuration config = new Configuration();
         engine = new SimulationEngine(1000, config);
     }
+
+    /**
+     * Verifies that the engine prevents unstable system states.
+     * The simulation uses a "Load Ratio" (λ/μ) to ensure that the arrival rate
+     * does not exceed the service capacity by an unsafe margin.
+     * An exception should be thrown if the configuration leads to a
+     * theoretical queue growth that would crash or stall the simulation.
+     */
     @Test
-    @DisplayName("Kertoimien validointi: Load ratio ei saa ylittyä")
+    @DisplayName("Validation of coefficients: Load ratio limit")
     void testLoadRatioValidation() {
-        // Testataan, että liian suuri matkustajavirta suhteessa palveluun heittää poikkeuksen
         assertThrows(Exception.class, () -> {
-            engine.setServiceSpeedFactor(1.5); // Palvelu hitaaksi (kerroin 2.0)
-            engine.setArrivalSpeedFactor(2.0);  // Saapuminen nopeaksi (kerroin 2.0)
-            // loadRatio = 2.0 / 0.5 (jos käänteinen) tai muu suhde > 1.29
-        }, "Moottorin pitäisi estää epävakaa tila (loadRatio > 1.29)");
+            // Attempting to set high arrival speed and low service speed
+            engine.setServiceSpeedFactor(1.5);
+            engine.setArrivalSpeedFactor(2.0);
+        }, "The engine should prevent unstable states where loadRatio > 1.29.");
     }
+
+    /**
+     * Tests the simulation's reset functionality.
+     * Ensures that all internal data structures, specifically the
+     * passenger tracking lists, are completely cleared when a reset is
+     * triggered. This is essential for running multiple consecutive simulations.
+     */
     @Test
-    @DisplayName("Reset-toiminto: AllPassengers pitäisi tyhjentyä")
+    @DisplayName("Reset function: Passenger list should be cleared")
     void testResetSimulation() {
-        // Simuloidaan tilanne, jossa on matkustajia
-        engine.allPassengers.add(new Passenger(engine));
+        // Act: Populate the engine with data
+        engine.getAllPassengers().add(new Passenger(engine));
+
+        // Act: Reset the engine state
         engine.resetSimulation();
 
-        assertTrue(engine.getAllPassengers().isEmpty(), "Matkustajalistan pitäisi olla tyhjä resetin jälkeen");
+        // Verification: The state must be empty
+        assertTrue(engine.getAllPassengers().isEmpty(),
+                "The passenger list must be empty after a simulation reset.");
     }
-
 }
