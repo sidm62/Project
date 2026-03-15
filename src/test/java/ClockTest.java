@@ -2,61 +2,79 @@ import org.example.Model.Clock;
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("Clock: Kellon hallinnan ja Singleton-rakenteen testaus")
+/**
+ * Unit tests for the {@link Clock} class.
+ * Tests the singleton implementation and ensures that time management
+ * within the simulation remains consistent and accurate.
+ */
+@DisplayName("Clock: Testing Time Management and Singleton Pattern")
 class ClockTest {
 
+    /**
+     * Resets the Clock singleton to zero before each test.
+     * This ensures test isolation so that time values from one test
+     * do not affect the outcome of subsequent tests.
+     */
     @BeforeEach
     void setUp() {
-        // Varmistetaan, että kello alkaa nollasta jokaisessa testissä
         Clock.getInstance().setTime(0);
     }
 
+    /**
+     * Verifies the Singleton pattern implementation.
+     * Ensures that multiple calls to getInstance() return the same object reference,
+     * preventing multiple independent clocks from existing simultaneously.
+     */
     @Test
-    @DisplayName("Kellon pitäisi olla Singleton")
+    @DisplayName("Clock should be a Singleton")
     void testClockIsSingleton() {
         Clock instance1 = Clock.getInstance();
         Clock instance2 = Clock.getInstance();
 
-        assertSame(instance1, instance2, "getInstance() pitäisi palauttaa aina sama olio");
+        assertSame(instance1, instance2, "getInstance() should always return the same instance.");
     }
 
+    /**
+     * Tests setting and retrieving the simulation time.
+     * Ensures that the time value is stored correctly with high floating-point precision.
+     */
     @Test
-    @DisplayName("Ajan asettaminen ja haku")
+    @DisplayName("Setting and getting time")
     void testSetAndGetTime() {
         Clock clock = Clock.getInstance();
         clock.setTime(150.5);
 
-        assertEquals(150.5, clock.getTime(), 0.0001, "Ajan pitäisi olla täsmälleen se, mitä asetettiin");
+        assertEquals(150.5, clock.getTime(), 0.0001, "The retrieved time should match the set value.");
     }
 
+    /**
+     * Tests the advancement of simulation time.
+     * Verifies that adding duration to the current clock time results
+     * in the correct cumulative simulation time.
+     */
     @Test
-    @DisplayName("Ajan edistäminen (Advance Time)")
+    @DisplayName("Advancing simulation time")
     void testAdvanceTime() {
         Clock clock = Clock.getInstance();
         clock.setTime(10.0);
 
-        // Jos sinulla on metodi ajan lisäämiseen:
-        // clock.advanceTime(5.5); 
-        // Jos ei, voit testata suoraan setTime-logiikkaa:
-        clock.setTime(clock.getTime() + 5.5);
+        double increment = 5.5;
+        clock.setTime(clock.getTime() + increment);
 
-        assertEquals(15.5, clock.getTime(), 0.0001, "Kellon pitäisi edistyä oikein");
+        assertEquals(15.5, clock.getTime(), 0.0001, "The clock should advance correctly.");
     }
 
+    /**
+     * Verifies that simulation time remains logically valid.
+     * Ensures that the clock does not represent negative time, which is
+     * essential for maintaining chronological event processing.
+     */
     @Test
-    @DisplayName("Kello ei saa kulkea taaksepäin")
-    void testClockShouldNotGoBackwards() {
+    @DisplayName("Clock should not have negative time")
+    void testClockShouldNotBeNegative() {
         Clock clock = Clock.getInstance();
         clock.setTime(100.0);
 
-        // Simulaatiossa kello liikkuu vain eteenpäin.
-        // Voit testata, ettet vahingossa aseta kelloa menneisyyteen, 
-        // jos olet toteuttanut tällaisen suojauksen:
-        double newTime = 50.0;
-        if (newTime < clock.getTime()) {
-            // Logiikka: Älä päivitä tai heitä virhe
-        }
-
-        assertTrue(clock.getTime() >= 0, "Kello ei voi olla negatiivinen");
+        assertTrue(clock.getTime() >= 0, "Simulation time cannot be negative.");
     }
 }
