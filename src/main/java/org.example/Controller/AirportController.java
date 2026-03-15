@@ -27,6 +27,9 @@ public class AirportController {
      */
     private Configuration config;
 
+    /** The active simulation engine instance
+     *
+     */
     private SimulationEngine engine;
 
     /**
@@ -39,6 +42,11 @@ public class AirportController {
         this.view = view;
         this.config = config;
     }
+
+    /**
+     * Injects the simulation engine instance into the controller
+     * @param engine the engine to be managed
+     */
 
     public void setEngine(SimulationEngine engine) {
         this.engine = engine;

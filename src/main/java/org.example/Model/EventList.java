@@ -55,6 +55,11 @@ public class EventList {
         return events.isEmpty();
     }
 
+    /**
+     * Clears all scheduled events from the timeline.
+     * Typically used when resetting the simulation engine for a fresh run.
+     */
+
     public void clear() {
         events.clear();
     }

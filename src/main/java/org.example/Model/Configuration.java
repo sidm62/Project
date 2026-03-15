@@ -140,54 +140,30 @@ public class Configuration {
 
     private double traversalMaxTime = 15.0;
 
+    /** Maps service point names to their specific processing speed multipliers */
+
     private final Map<String, Double> individualServiceSpeedFactors = new HashMap<>();
+
+    /**
+     Assigns a custom speed factor to a specific service point.
+     * @param pointName Name of the service point.
+     * @param factor Speed multiplier (e.g., 2.0 for double speed).
+     */
 
     public void setIndividualServiceSpeedFactors(String pointName, double factor) {
         individualServiceSpeedFactors.put(pointName, factor);
     }
+
+    /**
+     * Retrieves the speed factor for a service point, defaulting to 1.0.
+     * @param pointName Name of the service point.
+     * @return The assigned factor or 1.0 if not set.
+     */
+
     public double getIndividualServiceSpeedFactors(String pointName) {
         return individualServiceSpeedFactors.getOrDefault(pointName, 1.0);
     }
 
-
-    private HashMap<String, Double> serviceMeans = new HashMap<>();
-    private HashMap<String, Double> serviceStdDevs = new HashMap<>();
-
-    private HashMap<String, Double> traversalMeans = new HashMap<>();
-    private HashMap<String, Double> traversalStdDevs = new HashMap<>();
-
-    public void setServiceMean(String service, double mean) {
-        serviceMeans.put(service, mean);
-    }
-
-    public double getServiceMean(String service) {
-        return serviceMeans.getOrDefault(service, 1.0);
-    }
-
-    public void setServiceStdDev(String service, double sd) {
-        serviceStdDevs.put(service, sd);
-    }
-
-    public double getServiceStdDev(String service) {
-        return serviceStdDevs.getOrDefault(service, 0.2);
-    }
-
-
-    public void setTraversalMean(String transition, double mean) {
-        traversalMeans.put(transition, mean);
-    }
-
-    public double getTraversalMean(String transition) {
-        return traversalMeans.getOrDefault(transition, 0.5);
-    }
-
-    public void setTraversalStdDev(String transition, double sd) {
-        traversalStdDevs.put(transition, sd);
-    }
-
-    public double getTraversalStdDev(String transition) {
-        return traversalStdDevs.getOrDefault(transition, 0.1);
-    }
 
 
 

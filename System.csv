@@ -1,6 +1,6 @@
 Metric,Value
 TotalCompleted,28
 Throughput,0,280
-AvgJourneyTime,18,049
-AvgNumberInSystem,5,054
-SimulationTime,115,376
+AvgJourneyTime,20,914
+AvgNumberInSystem,5,856
+SimulationTime,117,057

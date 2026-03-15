@@ -388,7 +388,7 @@ public class SimulationEngine {
     }
 
 
-    // Schedule a new event in the future
+
     /**
      * Schedules a new event into the event list.
      *
@@ -1965,21 +1965,36 @@ public class SimulationEngine {
      * @param filename name of the output file
      */
     public void exportPassengerCSV(String filename) {
-        try (FileWriter writer = new FileWriter(filename)) {
-            // HEADER
-            writer.write("PassengerID,FlightType,TicketType,LuggageType,SelfCheckin,CarryOnWeight,SystemArrivalTime,DepartureTime,TotalJourneyTime");
-            for (ServicePoint sp : grouping) {
-                String name = sp.getServicePointName().replace(" ", "_");
-                writer.write(",Queue_" + name + ",ServiceStart_" + name + ",ServiceCompletion_" + name + ",Traversal_" + name);
-            }
-            writer.write("\n");
+        // Pakotetaan piste (.) desimaalierottimeksi (Locale.US), jotta CSV pysyy luettavana
+        java.util.Locale locale = java.util.Locale.US;
 
-            // ROWS
+        try (FileWriter writer = new FileWriter(filename)) {
+            // --- HEADER ---
+            // Kirjoitetaan otsikkorivi täsmälleen haluamassasi järjestyksessä
+            writer.write("PassengerID,FlightType,TicketType,LuggageType,SelfCheckin,CarryOnWeight," +
+                    "SystemArrivalTime,DepartureTime,TotalJourneyTime," +
+                    "Queue_Normal_Check-in,ServiceStart_Normal_Check-in,ServiceCompletion_Normal_Check-in,Traversal_Normal_Check-in," +
+                    "Queue_Self_Check-in,ServiceStart_Self_Check-in,ServiceCompletion_Self_Check-in,Traversal_Self_Check-in," +
+                    "Queue_Regular_Security,ServiceStart_Regular_Security,ServiceCompletion_Regular_Security,Traversal_Regular_Security," +
+                    "Queue_Fast_Track_Security,ServiceStart_Fast_Track_Security,ServiceCompletion_Fast_Track_Security,Traversal_Fast_Track_Security," +
+                    "Queue_Customs,ServiceStart_Customs,ServiceCompletion_Customs,Traversal_Customs," +
+                    "Queue_Boarding,ServiceStart_Boarding,ServiceCompletion_Boarding,Traversal_Boarding\n");
+
+            // Määritellään palvelupisteiden nimet täsmälleen samassa järjestyksessä kuin otsikoissa
+            String[] servicePoints = {
+                    "Normal Check-in", "Self Check-in",
+                    "Regular Security", "Fast Track Security",
+                    "Customs", "Boarding"
+            };
+
+            // --- ROWS ---
             int id = 1;
             for (Passenger p : allPassengers) {
+                // Varmistetaan, että matkustaja on valmistunut (DepartureTime asetettu)
                 if (p.getDepartureTime() <= 0) continue;
 
-                writer.write(String.format("%d,%s,%s,%s,%b,%.3f,%.3f,%.3f,%.3f",
+                // 1. Perustiedot (9 ensimmäistä saraketta)
+                writer.write(String.format(locale, "%d,%s,%s,%s,%b,%.3f,%.3f,%.3f,%.3f",
                         id,
                         p.isInternationalFlight() ? "International" : "Domestic",
                         p.getTicketType(),
@@ -1988,24 +2003,25 @@ public class SimulationEngine {
                         p.getCarryOnWeight(),
                         p.getSystemArrivalTime(),
                         p.getDepartureTime(),
-                        p.getTotalJourneyTime()
+                        p.getTotalJourneyTime() // Tämä laskee erotuksen dynaamisesti
                 ));
 
-                for (ServicePoint sp : grouping) {
-                    String name = sp.getServicePointName();
-                    writer.write(String.format(",%.3f,%.3f,%.3f,%.3f",
-                            p.getQueueEntryTimeFor(name),
-                            p.getServiceStartTimeFor(name),
-                            p.getServiceCompletionTimeFor(name),
-                            p.getTraversalTimeFrom(name)
+                // 2. Palvelupisteiden historiadata (Loput 24 saraketta)
+                for (String spName : servicePoints) {
+                    writer.write(String.format(locale, ",%.3f,%.3f,%.3f,%.3f",
+                            p.getQueueEntryTimeFor(spName),
+                            p.getServiceStartTimeFor(spName),
+                            p.getServiceCompletionTimeFor(spName),
+                            p.getTraversalTimeFrom(spName)
                     ));
                 }
+
                 writer.write("\n");
                 id++;
             }
-            System.out.println("Passenger CSV exported: " + filename);
+            System.out.println("Passenger CSV tallennettu simulaattorin muodossa: " + filename);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Virhe tiedostoon kirjoitettaessa: " + e.getMessage());
         }
     }
 

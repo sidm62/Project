@@ -210,6 +210,9 @@ public abstract class ServicePoint {
 
 
     }
+    /** * @return The global baseline mean service time used as a starting point
+     * for all service point calculations.
+     */
 
     public double getBaseServiceMean() {
         return baseServiceMean;
@@ -246,32 +249,23 @@ public abstract class ServicePoint {
      * @param factor adjustment factor for service speed
      */
     public void adjustServiceTime(double factor) {
-        // 1. Määritellään rajat (samat kuin aiemmin)
-        double MIN_FACTOR = 0.6;   // Max 40% nopeutus
-        double MAX_FACTOR = 1.0;   // Ei hidastusta yli perusnopeuden
-
-        // 2. Asetetaan kerroin rajojen sisään
-        this.currentFactor = Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, factor));
+        // Sallitaan kertoimet 0.1 (todella hidas) - 3.0 (supernopea)
+        this.currentFactor = Math.max(0.1, Math.min(3.0, factor));
         this.lastAdjustmentTime = Clock.getInstance().getTime();
 
-        // 3. Lasketaan uudet arvot käyttäen baseServiceMean-muuttujaa
-        // Jos baseStdDev on 0, käytetään oletuksena 20% hajontaa keskiarvosta
+        // TÄRKEÄÄ: Jos factor > 1 (Boost), jaetaan keskiarvo sillä -> aika lyhenee
+        this.temp_mean = baseServiceMean / currentFactor;
+
+        // Suhteutetaan hajonta uuteen keskiarvoon
         if (baseStdDev <= 0) baseStdDev = baseServiceMean * 0.2;
+        this.temp_stdDev = (baseServiceMean * 0.2) / currentFactor;
 
-        this.temp_mean = baseServiceMean * currentFactor;
-        this.temp_stdDev = baseStdDev * currentFactor;
-
-        // Varmistetaan, ettei hajonta mene nollaan (Normal-jakauma vaatii varianssin > 0)
-        double min_stdDev = 0.001;
-        this.temp_stdDev = Math.max(this.temp_stdDev, min_stdDev);
-
-        // 4. Päivitetään generaattori uudella skaalatulla Normal-jakaumalla
-        // Huom: Normal ottaa parametreina (keskiarvo, varianssi eli stdDev^2)
-        this.serviceGenerator = new Normal(temp_mean, temp_stdDev * temp_stdDev);
+        // Päivitetään generaattori
+        this.serviceGenerator = new Normal(temp_mean, Math.pow(temp_stdDev, 2));
 
         if (engine.isDebugMode()) {
-            System.out.printf("[SCALING] %s: Factor %.2f -> New Mean: %.2f%n",
-                    servicePointName, currentFactor, temp_mean);
+            System.out.printf(">>> [BOOST APPLIED] %s: New Mean Time %.2f (Speed Factor: %.2f)\n",
+                    servicePointName, temp_mean, currentFactor);
         }
     }
 
@@ -418,7 +412,7 @@ public abstract class ServicePoint {
         return completionCount == 0 ? 0 : cumulativeResponseTime / completionCount;
     }
 
-    // TODO: Should we include this in export Service CSV?
+
     /**
      * Calculates the average number of passengers in the service point system.
      *
@@ -536,19 +530,6 @@ public abstract class ServicePoint {
         return X * Wq;
     }
 
-    /**
-     * Calculates the absolute error between measured and predicted
-     * average queue length.
-     *
-     * @return absolute queue length error
-     */
-    public double getLittleLawQueueError() {
-
-        double measured = getAverageQueueLength();
-        double predicted = getPredictedAverageQueueLength();
-
-        return Math.abs(measured - predicted);
-    }
 
     /**
      * Calculates the percentage error between measured and predicted
@@ -579,22 +560,6 @@ public abstract class ServicePoint {
         areaUnderQueueLengthCurve += queue.size() * timeSinceLastUpdate;
 
         lastQueueLengthUpdateTime = simulationEndTime_from_engine;
-    }
-
-    /**
-     * Prints Little's Law validation results for this service point.
-     */
-    public void printLittleLawValidation() {
-
-        double measured = getAverageQueueLength();
-        double predicted = getPredictedAverageQueueLength();
-        double errorPercent = getLittleLawQueueErrorPercent();
-
-        System.out.println("Service Point: " + servicePointName);
-        System.out.println("Measured Lq: " + measured);
-        System.out.println("Predicted Lq (Little): " + predicted);
-        System.out.println("Error (%): " + errorPercent);
-        System.out.println("---------------------------");
     }
 
     /**

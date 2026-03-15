@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.ArrayList;
 
 
-import javafx.util.StringConverter;
 import org.example.Controller.AirportController;
 import org.example.Model.*;
 
@@ -70,6 +69,11 @@ public class AirportView extends Application {
      */
     private SimulationEngine engine;
 
+    /**
+     * Configuration settings for the simulation, containing parameters
+     * such as service speeds, arrival rates, and scenario-specific adjustments.
+     */
+
     Configuration config = new Configuration();
 
     /**
@@ -81,6 +85,9 @@ public class AirportView extends Application {
      * Text area for showing simulation info and messages.
      */
     private TextArea infoArea = new TextArea();
+    /**
+     * @return The text area used for simulation event logging.
+     */
 
     public TextArea getInfoArea() {
         return infoArea;
@@ -91,10 +98,14 @@ public class AirportView extends Application {
      */
     private static Map<Integer, Runnable> waitingPassengers = new HashMap<>();
 
+    /** Table for individual passenger results. */
     private TableView<String[]> passengerTableView = new TableView<>();
-    private TableView<String[]> servicePointTableView = new TableView<>();
-    private TableView<String[]> systemTableView = new TableView<>();
 
+    /** Table for service point statistics and utilization. */
+    private TableView<String[]> servicePointTableView = new TableView<>();
+
+    /** Table for overall system performance metrics. */
+    private TableView<String[]> systemTableView = new TableView<>();
     /**
      * Starting X coordinate for passenger animation nodes.
      */
@@ -105,10 +116,14 @@ public class AirportView extends Application {
      */
     private static final double START_Y = 280;
 
+    /** Current multiplier for service speeds (default 1.0). */
     private double serviceBoost = 1.0;
 
-    private static final double MIN_BOOST = 0.5; // fastest allowed
-    private static final double MAX_BOOST = 1.0; // normal speed
+    /** Fastest allowed service speed multiplier. */
+    private static final double MIN_BOOST = 0.5;
+
+    /** Normal service speed multiplier. */
+    private static final double MAX_BOOST = 1.0;
 
 
     /**
@@ -119,33 +134,29 @@ public class AirportView extends Application {
     public void setEngine(SimulationEngine engine) {
         this.engine = engine;
     }
-
+    /**
+     * @return The currently active simulation engine instance.
+     */
     public SimulationEngine getEngine() {
         return engine;
     }
 
     /**
-     * Palauttaa matkustajakohtaiset tulokset sisältävän taulukon.
-     *
-     * @return TableView matkustajadatalla
+     * @return The table view containing individual passenger results.
      */
     public TableView<String[]> getPassengerTableView() {
         return passengerTableView;
     }
 
     /**
-     * Palauttaa palvelupistekohtaiset tilastot (jonot, käyttöasteet jne.).
-     *
-     * @return TableView palvelupistedatalla
+     * @return The table view containing service point statistics and utilization.
      */
     public TableView<String[]> getServicePointTableView() {
         return servicePointTableView;
     }
 
     /**
-     * Palauttaa koko järjestelmän kattavat tunnusluvut.
-     *
-     * @return TableView järjestelmädatalla
+     * @return The table view containing overall system performance metrics.
      */
     public TableView<String[]> getSystemTableView() {
         return systemTableView;
@@ -160,6 +171,10 @@ public class AirportView extends Application {
     public static AirportView getInstance() {
         return instance;
     }
+
+    /**
+     * Map of passenger IDs to their corresponding UI animation nodes.
+     */
 
     public Map<Integer, Circle> passengerNodes = new HashMap<>();
 
@@ -231,6 +246,11 @@ public class AirportView extends Application {
         sp.setLayoutY(y);
         return sp;
     }
+    /**
+     * Executes a GUI action only if the triggering engine is still active.
+     * * @param callbackEngine The engine that requested the update.
+     * @param guiAction The task to run on the JavaFX thread.
+     */
 
     private void runIfCurrentEngine(SimulationEngine callbackEngine, Runnable guiAction) {
         Platform.runLater(() -> {
@@ -246,15 +266,6 @@ public class AirportView extends Application {
      * @param p the passenger to animate
      */
 
-    /*
-    public static void animateSinglePassenger(Passenger p) {
-        if (instance != null) {
-            SimulationEngine currentEngine = instance.getEngine();
-            Platform.runLater(() -> instance.createPassengerAnimation(p));
-        }
-    }
-
-     */
 
     public static void animateSinglePassenger(Passenger p) {
         if (instance != null) {
@@ -280,122 +291,12 @@ public class AirportView extends Application {
         passengerNodes.put(p.getId(), node);
         // animateStep(p, node, 0);
     }
-
     /**
-     * Performs a single step of passenger animation through the service points.
-     *
-     * @param p     the passenger
-     * @param node  the Circle representing the passenger
-     * @param stage the current stage in the simulation
+     * Animates a passenger's movement to the next service point based on the event.
+     * * @param p The passenger to move.
+     * @param nextEvent The event triggering the movement.
      */
-    private void animateStep(Passenger p, Circle node, int stage) {
-        double targetX, targetY;
-        int nextStage = stage + 1;
 
-        switch (stage) {
-            case 0: // Check-in
-                if (p.getCheckinLuggageType() == LuggageType.OVERSIZED || !p.isEligibleForSelfCheckin()) {
-                    targetX = 150 + 60;
-                    targetY = 180 + 30;
-                } else {
-                    targetX = 150 + 60;
-                    targetY = 320 + 30;
-                }
-                break;
-            case 1: // Security
-                if (p.usesFastTrackSecurity()) {
-                    targetX = 400 + 60;
-                    targetY = 320 + 30;
-                } else {
-                    targetX = 400 + 60;
-                    targetY = 180 + 30;
-                }
-                break;
-            case 2: // Customs
-                if (p.isInternationalFlight()) {
-                    targetX = 600 + 60;
-                    targetY = 250 + 30;
-                } else {
-                    animateStep(p, node, 3);
-                    return;
-                }
-                break;
-            case 3: // Boarding
-                targetX = 800 + 60;
-                targetY = 250 + 30;
-                break;
-            default: // Finished
-                animationPane.getChildren().remove(node);
-                return;
-        }
-
-
-
-        // double durationSeconds = engine.getTimeScale() / 1000.0;
-        double durationSeconds = Math.max(engine.getTimeScale() / 1000.0, 0.25);
-        TranslateTransition move = new TranslateTransition(Duration.seconds(durationSeconds), node);
-
-        /* Move relative to current position */
-        double currentX = node.getTranslateX();
-        double currentY = node.getTranslateY();
-
-        // move.setToX(targetX - START_X);
-        // move.setToY(targetY - START_Y);
-
-        move.setToX(currentX + (targetX - (START_X + currentX)));
-        move.setToY(currentY + (targetY - (START_Y + currentY)));
-
-        move.setOnFinished(e -> {
-            if (engine.isStepMode()) {
-                waitingPassengers.put(p.getId(), () -> animateStep(p, node, nextStage));
-            } else {
-                // animateStep(p, node, nextStage);
-                Platform.runLater(() -> animateStep(p, node, nextStage));
-            }
-        });
-        move.play();
-    }
-
-    /*
-
-
-    public void animatePassengerArrival(Passenger p) {
-
-        if (engine == null) return;
-
-        SimulationEngine callbackEngine = engine;
-
-        runIfCurrentEngine(callbackEngine, () -> {
-
-            // Prevent duplicate creation
-            if (passengerNodes.containsKey(p.getId())) return;
-
-            Color passengerColor =
-                    (p.getTicketType() == TicketType.ECONOMY)
-                            ? Color.RED
-                            : Color.BLUE;
-
-            Circle node = new Circle(7, passengerColor);
-            node.setStroke(Color.BLACK);
-
-            // Spawn slightly outside airport for entry animation
-            node.setLayoutX(START_X - 40);
-            node.setLayoutY(START_Y);
-
-            animationPane.getChildren().add(node);
-            passengerNodes.put(p.getId(), node);
-
-            double duration = Math.max(engine.getTimeScale() / 1000.0, 0.25);
-
-            TranslateTransition entry = new TranslateTransition(Duration.seconds(duration), node);
-            entry.setToX(40); // move into airport start position
-            entry.setToY(0);
-
-            entry.play();
-        });
-    }
-
-     */
 
     public void animatePassengerToNextService(Passenger p, EventType nextEvent) {
 
@@ -752,8 +653,20 @@ public class AirportView extends Application {
         tabPane.setPrefHeight(250);
 
         // Alustetaan sarakkeet (HUOM: System sarakkeet korjattu vastaamaan CSV-dataa)
-        setupTableColumns(passengerTableView, new String[]{"ID", "Ticket", "Arrival", "Removal", "Duration"});
-        setupTableColumns(servicePointTableView, new String[]{"Station", "In", "Out", "Wait", "Svc", "Util", "Q-Len"});
+        setupTableColumns(passengerTableView, new String[]{
+                "ID", "Flight", "Ticket", "Luggage", "Self", "Weight", "Arrival", "Departure", "Total",
+                "Q_Normal", "S_Normal", "C_Normal", "T_Normal",
+                "Q_Self", "S_Self", "C_Self", "T_Self",
+                "Q_RegSec", "S_RegSec", "C_RegSec", "T_RegSec",
+                "Q_Fast", "S_Fast", "C_Fast", "T_Fast",
+                "Q_Cust", "S_Cust", "C_Cust", "T_Cust",
+                "Q_Board", "S_Board", "C_Board", "T_Board"
+        });
+        setupTableColumns(servicePointTableView, new String[]{
+                "ServicePoint", "Arrivals", "Completions", "AvgWait", "AvgService",
+                "AvgResponse", "Utilization", "AvgQLen", "LqPredicted",
+                "LqError%", "AvgInSystem", "MaxQLen"
+        });
         setupTableColumns(systemTableView, new String[]{"Label", "Value"}); // Korjattu 2 sarakkeeseen
 
         Tab logTab = new Tab("Event Log", infoArea);
@@ -781,8 +694,14 @@ public class AirportView extends Application {
         root.setBottom(scroll);
 
 
-        // Huom: Poistin 'speedTuning' -osan, koska valikko on nyt 'controls' -rivissä
+
     }
+
+    /**
+     * Updates the interactivity of UI controls based on the simulation state.
+     * @param running True to disable parameters during execution, false to enable.
+     */
+
 
     private void setControlsForSimulation(boolean running) {
 
@@ -848,6 +767,13 @@ public class AirportView extends Application {
             if (engine == null) {
                 return;
             }
+
+            // 1. Päivitetään taulukko CSV-tiedostosta heti tulosten valmistuttua
+            // Varmista, että tiedostonimi täsmää SimulationEnginen export-nimeen
+            updateTableFromCSV("passengers.csv", passengerTableView);
+            updateTableFromCSV("servicepoints.csv",servicePointTableView);
+
+            // 2. Tulostetaan tekstimuotoiset tulokset infoArea-kenttään
             infoArea.appendText("\n" + "=".repeat(45) + "\n");
             infoArea.appendText("       SIMULATION RESULTS\n");
             infoArea.appendText(String.format(" Completed passengers: %d\n", totalCompleted));
@@ -864,6 +790,11 @@ public class AirportView extends Application {
             setControlsForSimulation(false);
         });
     }
+    /**
+     * Reads a CSV file and populates the table, skipping the header row.
+     * @param filename Path to the CSV file.
+     * @param table The TableView to update.
+     */
     public void updateTableFromCSV(String filename, TableView<String[]> table) {
         Platform.runLater(() -> {
             try {
@@ -877,6 +808,12 @@ public class AirportView extends Application {
             } catch (Exception e) { System.err.println("CSV Error: " + e.getMessage()); }
         });
     }
+
+    /**
+     * Configures table columns and maps data indices to specific cells.
+     * @param table The TableView to configure.
+     * @param columnNames Array of headers for the columns.
+     */
 
     private void setupTableColumns(TableView<String[]> table, String[] columnNames) {
         table.getColumns().clear();
@@ -897,61 +834,6 @@ public class AirportView extends Application {
 
             table.getColumns().add(col);
         }
-    }
-    /**
-     * Luo paneelin, jossa on painikkeet palvelupisteiden nopeuden säätämiseen.
-     * @return VBox-komponentti, joka sisältää painikkeet.
-     */
-    /**
-     * Luo paneelin, jossa on painikkeet palvelupisteiden nopeuden kasvattamiseen 20 % kerrallaan.
-     */
-    /**
-     * Luo paneelin, jossa palvelupisteiden nimet toimivat Boost-painikkeina.
-     */
-    private VBox createIndividualSpeedButtons() {
-        VBox container = new VBox(10);
-        container.setPadding(new Insets(10));
-        container.setStyle("-fx-background-color: #ddd; -fx-border-color: #bbb; -fx-border-radius: 8;");
 
-        Label title = new Label("Pikatehostus (+20%):");
-        title.setStyle("-fx-font-weight: bold;");
-
-        HBox row = new HBox(10);
-        row.setAlignment(Pos.CENTER_LEFT);
-
-        // 1. Luodaan pudotusvalikko
-        ComboBox<String> pointPicker = new ComboBox<>();
-        pointPicker.getItems().addAll(
-                "Normal Check-in", "Self Check-in",
-                "Regular Security", "Fast Track",
-                "Customs", "Boarding"
-        );
-        pointPicker.setPromptText("Valitse tehostettava piste...");
-        pointPicker.setPrefWidth(200);
-
-        // 2. Toiminto: Heti kun arvo muuttuu (valitaan listasta), tehostus aktivoituu
-        pointPicker.setOnAction(e -> {
-            String selectedPoint = pointPicker.getValue();
-
-            if (selectedPoint != null && config != null) {
-                // Asetetaan tehostus Configuration-olioon (1.2x nopeus)
-                config.setIndividualServiceSpeedFactors(selectedPoint,1.2);
-
-                // Lokiviesti ja palaute
-                infoArea.appendText(">>> BOOST AKTIVOITU: " + selectedPoint + "\n");
-
-                // Valinnaisesti: poistetaan valittu piste listalta,
-                // jotta sitä ei voi "boostata" monta kertaa vahingossa
-                // Platform.runLater(() -> pointPicker.getItems().remove(selectedPoint));
-
-                // Tyhjennetään valinta, jotta valikon teksti palaa ennalleen
-                Platform.runLater(() -> pointPicker.setValue(null));
-            }
-        });
-
-        row.getChildren().addAll(new Label("Kohde:"), pointPicker);
-        container.getChildren().addAll(title, row);
-
-        return container;
     }
 }

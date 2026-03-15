@@ -66,7 +66,7 @@ public class Passenger {
      */
     private double serviceCompletionTime;
 
-    // Service timestamps per service point
+
     /**
      * History of queue entry times by service point name.
      */
@@ -150,7 +150,8 @@ public class Passenger {
 
         this.uniformGen = new Uniform(0, 1);
 
-        // Initialize all attributes
+        /** Initialize all attributes*/
+
         initializeAttributes();
     }
 
@@ -196,22 +197,15 @@ public class Passenger {
         return departureTime - systemArrivalTime;
     }
 
-    /**
-     * Returns the given total journey time value.
-     *
-     * This method does not update the actual stored journey time.
-     *
-     * @param time total journey time value
-     * @return given time value
-     */
-    public double setTotalJourneyTime(double time) {
-        double totalJourneyTime = getTotalJourneyTime();
-        return totalJourneyTime = time;
-    }
+    /** The timestamp when the passenger is officially removed from the simulation. */
     private double removalTime;
+
+    /** @param time The simulation time when the passenger completes their journey. */
     public void setRemovalTime(double time) {
         this.removalTime = time;
     }
+
+    /** @return The timestamp of the passenger's exit from the system. */
     public double getRemovalTime() {
         return removalTime;
     }
@@ -447,6 +441,7 @@ public class Passenger {
     public double getSystemArrivalTime() {
         return systemArrivalTime;
     }
+
 
     // =========================
     // Attribute Initialization

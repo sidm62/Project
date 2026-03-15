@@ -67,5 +67,5 @@ public class Normal extends Generator implements ContinuousGenerator {
      * Generate a new random number.
      * @return The next random number in the sequence
      */
-    public double sample() { return distrib.normal2(mean, std_dev); }
+    public double sample() { return distrib.normal2(mean, std_dev);}
 }
